@@ -14,25 +14,32 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     { cookies: { getAll() { return cookieStore.getAll() } } }
   )
 
+  // 1. GET USER FIRST (Critical: This must happen before we use user.id)
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  // 2. GET PROFILE (Now safe to use user.id)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+  
   const isAanvoerder = profile?.role === 'coach'
 
-  // 1. Fetch Event + All Attendance
+  // 3. GET EVENT DATA
   const { data: event } = await supabase
     .from('events')
-    .select('*, attendance(*, profiles(*))') // Nested join to get names!
+    .select('*, attendance(*, profiles(*))') // Fetch event + attendance + user names
     .eq('id', id)
     .single()
 
-  // 2. Fetch ALL Team Members (to see who hasn't voted)
+  // 4. GET ALL PLAYERS (To see who is missing)
   const { data: allPlayers } = await supabase.from('profiles').select('*')
 
-  if (!event || !allPlayers) return <div>Event not found</div>
+  if (!event || !allPlayers) return <div className="p-8 text-center text-gray-500">Event not found</div>
 
-  // 3. Sort players into buckets
+  // Sort players into buckets
   const inPlayers = event.attendance.filter((a: any) => a.status === 'in')
   const outPlayers = event.attendance.filter((a: any) => a.status === 'out')
   const maybePlayers = event.attendance.filter((a: any) => a.status === 'maybe')
@@ -41,7 +48,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const noVotePlayers = allPlayers.filter(p => !votedIds.includes(p.id))
 
   // Find my current status
-  const myVote = event.attendance.find((a: any) => a.user_id === user.id)?.status
+  const myAttendance = event.attendance.find((a: any) => a.user_id === user.id)
 
   // Helper component for list items
   const PlayerList = ({ title, players, color }: any) => (
@@ -51,8 +58,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         <div className="space-y-2">
           {players.map((item: any) => {
             const p = item.profiles || item
-            // Check if there is a reason attached
-            const reason = item.reason 
+            const reason = item.reason // Get the reason text
             
             return (
               <div key={p.id} className="bg-white p-3 rounded border border-gray-100 shadow-sm">
@@ -62,8 +68,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                   </div>
                   <span className="text-sm font-medium text-gray-700">{p.full_name}</span>
                 </div>
-                
-                {/* DISPLAY REASON IF IT EXISTS */}
+                {/* Show Reason if it exists */}
                 {reason && (
                   <div className="mt-2 ml-11 text-xs text-gray-500 bg-gray-50 p-2 rounded italic">
                     "{reason}"
@@ -80,31 +85,32 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   return (
     <main className="min-h-screen bg-gray-50 pb-10">
       {/* Header */}
-      <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="p-2 -ml-2 hover:bg-gray-100 rounded-full">←</Link>
+      <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <Link href="/" className="p-2 -ml-2 hover:bg-gray-100 rounded-full flex-shrink-0">←</Link>
           <h1 className="font-bold text-lg truncate">{event.title}</h1>
         </div>
-        {/* Add the Delete Button here */}
+        {/* Delete Button (Only for Aanvoerder) */}
         {isAanvoerder && <DeleteButton id={event.id} table="events" redirectPath="/" />}
       </div>
 
       <div className="max-w-md mx-auto p-6">
         {/* Info Card */}
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mb-6">
+        <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 mb-6">
           <p className="text-sm text-gray-500 mb-1">
             {new Date(event.start_time).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })}
             {' • '}
             {new Date(event.start_time).toLocaleTimeString('nl-NL', { hour: '2-digit', minute:'2-digit' })}
           </p>
-          <p className="text-gray-900 font-medium mb-4">📍 {event.location}</p>
+          <p className="text-gray-900 font-medium mb-4">📍 {event.location || 'No location set'}</p>
           
           <p className="text-xs font-semibold text-gray-500 mb-2 uppercase">Update Status</p>
+          
           <AttendanceToggle 
             eventId={event.id} 
             userId={user.id} 
-            initialStatus={myVote} 
-            initialReason={event.attendance.find((a: any) => a.user_id === user.id)?.reason}
+            initialStatus={myAttendance?.status}
+            initialReason={myAttendance?.reason}
             config={{
               reqOut: event.reason_required_out,
               reqMaybe: event.reason_required_maybe
@@ -113,11 +119,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         </div>
 
         {/* Lists */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <PlayerList title="Present" players={inPlayers} color="text-green-600" />
-          <PlayerList title="Absent" players={outPlayers} color="text-red-600" />
           <PlayerList title="Maybe" players={maybePlayers} color="text-orange-600" />
-          <PlayerList title="No Response" players={noVotePlayers} color="text-gray-500" />
+          <PlayerList title="Absent" players={outPlayers} color="text-red-600" />
+          <PlayerList title="No Response" players={noVotePlayers} color="text-gray-400" />
         </div>
       </div>
     </main>
