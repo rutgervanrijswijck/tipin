@@ -79,29 +79,39 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     
     return (
       <Link href={`/events/${event.id}`} className="block group">
-        <div className={`bg-white p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white group-hover:border-blue-200 transition-all duration-300 relative overflow-hidden pl-7`} style={{ opacity }}>
+        <div className={`bg-white p-3 rounded-r-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white group-hover:border-blue-200 transition-all duration-300 relative overflow-hidden pl-7`} style={{ opacity }}>
           
           <div className={`absolute left-0 top-0 bottom-0 w-2.5 
             ${event.event_type === 'game' ? 'bg-orange-500' : event.event_type === 'training' ? 'bg-blue-500' : 'bg-green-500'}`} 
           />
 
-          <div className="mb-4">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
-              {new Date(event.start_time).toLocaleDateString('nl-NL', { weekday: 'long' })}
-            </p>
-            <h2 className="text-xl font-bold text-gray-900 leading-tight">
-              {event.title}
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">
-              {new Date(event.start_time).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })} @ {new Date(event.start_time).toLocaleTimeString('nl-NL', { hour: '2-digit', minute:'2-digit' })}
-            </p>
+          <div className="mb-4 flex justify-between items-start gap-4">
+            <div className="flex-1">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                {new Date(event.start_time).toLocaleDateString('nl-NL', { weekday: 'long' })}
+              </p>
+              <h2 className="text-xl font-bold text-gray-900 leading-tight">
+                <span className="mr-2">
+                  {event.event_type === 'game' ? '⚔️' : event.event_type === 'training' ? '🏋️' : '🍻'}
+                </span>
+                {event.title}
+              </h2>
+            </div>
+            <div className="text-right flex flex-col items-end">
+              <p className="text-lg font-bold text-blue-600">
+                {new Date(event.start_time).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {new Date(event.start_time).toLocaleTimeString('nl-NL', { hour: '2-digit', minute:'2-digit' })}
+              </p>
+            </div>
           </div>
 
-          <div className="flex gap-3 mb-5 text-sm font-medium text-gray-600">
-            {counts.in > 0 && <span className="flex items-center gap-1"><span className="text-green-600">●</span> {counts.in} In</span>}
-            {counts.maybe > 0 && <span className="flex items-center gap-1"><span className="text-orange-500">●</span> {counts.maybe} Maybe</span>}
-            {counts.out > 0 && <span className="flex items-center gap-1"><span className="text-red-500">●</span> {counts.out} Out</span>}
-            {counts.in === 0 && counts.maybe === 0 && counts.out === 0 && <span className="text-gray-400 text-xs">No votes yet</span>}
+          {/* Count Badges */}
+          <div className="flex gap-2 mb-4 text-xs font-semibold">
+              <span className="bg-green-50 text-green-700 px-2 py-1 rounded">👍 {counts.in}</span>
+              <span className="bg-orange-50 text-orange-700 px-2 py-1 rounded">🤔 {counts.maybe}</span>
+              <span className="bg-red-50 text-red-700 px-2 py-1 rounded">👎 {counts.out}</span>
           </div>
 
           <AttendanceToggle 
@@ -126,18 +136,22 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       <div className="bg-white px-6 pt-12 pb-6 mb-6 shadow-sm rounded-b-[2rem]">
         <div className="max-w-md mx-auto flex justify-between items-end">
           <div>
-            <p className="text-gray-500 font-medium text-sm mb-1 uppercase tracking-wide">Welcome back</p>
             <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-              {profile?.full_name?.split(' ')[0]}
+              🏑TipIn
             </h1>
           </div>
-          <form action="/auth/signout" method="post">
-            <button className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-              </svg>
-            </button>
-          </form>
+          <div className="flex items-center gap-3">
+            <p className="text-gray-500 font-medium text-sm">
+              {profile?.full_name?.split(' ')[0]}
+            </p>
+            <form action="/auth/signout" method="post">
+              <button className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                </svg>
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 

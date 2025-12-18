@@ -100,11 +100,11 @@ export default function AttendanceToggle({ eventId, userId, initialStatus, initi
 
       {/* Edit Reason Link (Always visible if you voted) */}
       {status && (
-        <div className="text-center mt-1">
+        <div className="text-center mt-2">
           <button 
             onClick={() => { setPendingStatus(status); setShowModal(true); }}
-            className="text-[10px] text-gray-400 underline hover:text-blue-500">
-            {initialReason ? 'Edit note' : 'Add note'}
+            className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
+            {initialReason ? 'Edit reason' : 'Add reason'}
           </button>
         </div>
       )}
@@ -113,12 +113,12 @@ export default function AttendanceToggle({ eventId, userId, initialStatus, initi
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-xl p-5 w-full max-w-sm shadow-2xl animate-in zoom-in-95">
-            <h3 className="font-bold text-lg mb-2">
+            <h3 className="font-bold text-gray-900 mb-2">
               Add a reason for <span className="uppercase">{pendingStatus}</span>
             </h3>
             <p className="text-sm text-gray-500 mb-4">
               {((pendingStatus === 'out' && config.reqOut) || (pendingStatus === 'maybe' && config.reqMaybe)) 
-                ? 'A reason is required by the coach.' 
+                ? 'A reason is required by the aanvoerders.' 
                 : 'Optional: Add a note for the team.'}
             </p>
             
@@ -126,8 +126,8 @@ export default function AttendanceToggle({ eventId, userId, initialStatus, initi
               autoFocus
               value={reasonText}
               onChange={(e) => setReasonText(e.target.value)}
-              className="w-full border rounded-lg p-3 min-h-[80px] mb-4 text-sm"
-              placeholder="e.g. Injured, Holiday, Work..."
+              className="w-full border rounded-lg p-3 min-h-[80px] mb-4 text-sm text-gray-700"
+              placeholder="Only good reasons are accepted! 😉"
             />
 
             <div className="flex gap-2">

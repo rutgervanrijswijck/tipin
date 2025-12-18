@@ -87,8 +87,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       {/* Header */}
       <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3 overflow-hidden">
-          <Link href="/" className="p-2 -ml-2 hover:bg-gray-100 rounded-full flex-shrink-0">←</Link>
-          <h1 className="font-bold text-lg truncate">{event.title}</h1>
+          <Link href="/" className="p-2 -ml-2 text-gray-900 hover:bg-gray-300 rounded-full flex-shrink-0">←</Link>
+          <h1 className="font-bold text-gray-900 truncate">{event.title}</h1>
         </div>
         {/* Delete Button (Only for Aanvoerder) */}
         {isAanvoerder && <DeleteButton id={event.id} table="events" redirectPath="/" />}

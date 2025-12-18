@@ -36,12 +36,12 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
       {/* Header */}
       <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/?tab=polls" className="p-2 -ml-2 hover:bg-gray-100 rounded-full">←</Link>
-          <h1 className="font-bold text-lg">Poll Details</h1>
+          <Link href="/?tab=polls" className="p-2 -ml-2 text-gray-900 hover:bg-gray-300 rounded-full">←</Link>
+          <h1 className="font-bold text-gray-900">Poll Details</h1>
         </div>
         {isAanvoerder && <DeleteButton id={poll.id} table="polls" redirectPath="/?tab=polls" />}
       </div>
-
+    
       <div className="max-w-md mx-auto p-6 space-y-6">
         
         {/* The Active Poll Card */}
