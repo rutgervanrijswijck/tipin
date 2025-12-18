@@ -46,13 +46,25 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       {players.length === 0 ? <p className="text-sm text-gray-400 italic">Nobody yet.</p> : (
         <div className="space-y-2">
           {players.map((item: any) => {
-            const p = item.profiles || item // Handle difference between 'attendance' row and 'profile' row
+            const p = item.profiles || item
+            // Check if there is a reason attached
+            const reason = item.reason 
+            
             return (
-              <div key={p.id} className="flex items-center gap-3 bg-white p-2 rounded border border-gray-100">
-                <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
-                  {p.full_name?.[0]}
+              <div key={p.id} className="bg-white p-3 rounded border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 shrink-0">
+                    {p.full_name?.[0]}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">{p.full_name}</span>
                 </div>
-                <span className="text-sm font-medium text-gray-700">{p.full_name}</span>
+                
+                {/* DISPLAY REASON IF IT EXISTS */}
+                {reason && (
+                  <div className="mt-2 ml-11 text-xs text-gray-500 bg-gray-50 p-2 rounded italic">
+                    "{reason}"
+                  </div>
+                )}
               </div>
             )
           })}
@@ -80,7 +92,16 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           <p className="text-gray-900 font-medium mb-4">📍 {event.location}</p>
           
           <p className="text-xs font-semibold text-gray-500 mb-2 uppercase">Update Status</p>
-          <AttendanceToggle eventId={event.id} userId={user.id} initialStatus={myVote} />
+          <AttendanceToggle 
+            eventId={event.id} 
+            userId={user.id} 
+            initialStatus={myVote} 
+            initialReason={event.attendance.find((a: any) => a.user_id === user.id)?.reason}
+            config={{
+              reqOut: event.reason_required_out,
+              reqMaybe: event.reason_required_maybe
+            }}
+          />
         </div>
 
         {/* Lists */}

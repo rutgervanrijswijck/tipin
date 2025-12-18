@@ -18,8 +18,11 @@ export default function CreateEventForm({ userId }: { userId: string }) {
     const { error } = await supabase.from('events').insert({
       title: formData.get('title'),
       event_type: formData.get('type'),
-      start_time: formData.get('date'), // HTML datetime-local input
+      start_time: formData.get('date'),
       location: formData.get('location'),
+      // Checkboxes return 'on' if checked, null if not
+      reason_required_out: formData.get('req_out') === 'on',
+      reason_required_maybe: formData.get('req_maybe') === 'on',
     })
 
     if (!error) {
@@ -61,6 +64,19 @@ export default function CreateEventForm({ userId }: { userId: string }) {
         </div>
 
         <input name="date" type="datetime-local" required className="w-full p-2 border rounded-lg text-gray-600" />
+
+        {/* New Settings Section */}
+        <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+          <p className="text-xs font-bold text-gray-500 uppercase">Reason Requirements</p>
+          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input type="checkbox" name="req_out" className="rounded text-blue-600" />
+            Require reason for 'Out'
+          </label>
+          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input type="checkbox" name="req_maybe" className="rounded text-blue-600" />
+            Require reason for 'Maybe'
+          </label>
+        </div>
 
         <button disabled={loading} className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700">
           {loading ? 'Creating...' : 'Create Event'}
