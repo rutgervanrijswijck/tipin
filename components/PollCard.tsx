@@ -2,17 +2,19 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
-export default function PollCard({ poll, userId, myVoteIndex }: any) {
+export default function PollCard({ poll, userId, myVoteIndex, detailLink }: any) {
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
   const router = useRouter()
 
-  // Calculate percentages
   const totalVotes = poll.poll_votes.length
   const counts = poll.options.map((_: any, index: number) => 
     poll.poll_votes.filter((v: any) => v.option_index === index).length
   )
+
+  const hasVoted = myVoteIndex !== null && myVoteIndex !== undefined
 
   const handleVote = async (index: number) => {
     setLoading(true)
@@ -25,8 +27,30 @@ export default function PollCard({ poll, userId, myVoteIndex }: any) {
   }
 
   return (
-    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-4">
-      <h3 className="font-bold text-gray-900 mb-4">{poll.question}</h3>
+    <div className={`bg-white p-5 rounded-2xl shadow-sm border mb-4 transition-all ${!hasVoted ? 'border-blue-200 ring-1 ring-blue-50' : 'border-gray-100'}`}>
+      
+      {/* Header: Link to Details if detailLink is provided */}
+      <div className="mb-4">
+        {detailLink ? (
+          <Link href={detailLink} className="group">
+            <div className="flex justify-between items-start">
+              <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                {poll.question} <span className="text-gray-300 text-xs font-normal ml-1">›</span>
+              </h3>
+              {!hasVoted && (
+                <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">
+                  Vote required
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Click title for details</p>
+          </Link>
+        ) : (
+          <h3 className="font-bold text-gray-900">{poll.question}</h3>
+        )}
+      </div>
+
+      {/* Options */}
       <div className="space-y-3">
         {poll.options.map((opt: string, idx: number) => {
           const count = counts[idx]
@@ -42,7 +66,6 @@ export default function PollCard({ poll, userId, myVoteIndex }: any) {
                 ${isSelected ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}
               `}
             >
-              {/* Progress Bar Background */}
               <div 
                 className="absolute top-0 left-0 bottom-0 bg-blue-100 transition-all duration-500" 
                 style={{ width: `${percent}%`, opacity: 0.5 }} 
