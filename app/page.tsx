@@ -11,7 +11,7 @@ import BottomNav from '@/components/BottomNav'
 // Add 'past' to the searchParams type
 export default async function Home({ searchParams }: { searchParams: Promise<{ tab?: string, past?: string }> }) {
   const { tab, past } = await searchParams
-  const activeTab = tab === 'polls' ? 'polls' : 'schedule'
+  const activeTab = tab === 'polls' ? 'polls' : tab === 'team' ? 'team' : 'schedule'
   
   // Parse how many past items to show (default 0)
   const pastLimit = parseInt(past || '0', 10)
@@ -209,6 +209,23 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
               })}
            </div>
         )}
+
+        {/* TEAM TAB */}
+          {activeTab === 'team' && (
+            <div className="flex flex-col items-center justify-center pt-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="bg-white p-8 rounded-full shadow-sm mb-6">
+                  <span className="text-4xl">🚧</span>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Team Hub</h2>
+              <p className="text-gray-500 text-center max-w-xs">
+                We are building a space for team stats, contact info, and role management.
+              </p>
+              <span className="mt-8 px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full uppercase tracking-wider">
+                Coming Soon
+              </span>
+            </div>
+          )}
+
       </div>
 
       <BottomNav />
