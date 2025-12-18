@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import AttendanceToggle from '@/components/AttendanceToggle'
+import DeleteButton from '@/components/DeleteButton'
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -15,6 +16,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  const isAanvoerder = profile?.role === 'coach'
 
   // 1. Fetch Event + All Attendance
   const { data: event } = await supabase
@@ -76,9 +80,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   return (
     <main className="min-h-screen bg-gray-50 pb-10">
       {/* Header */}
-      <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center gap-3">
-        <Link href="/" className="p-2 -ml-2 hover:bg-gray-100 rounded-full">←</Link>
-        <h1 className="font-bold text-lg truncate">{event.title}</h1>
+      <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="p-2 -ml-2 hover:bg-gray-100 rounded-full">←</Link>
+          <h1 className="font-bold text-lg truncate">{event.title}</h1>
+        </div>
+        {/* Add the Delete Button here */}
+        {isAanvoerder && <DeleteButton id={event.id} table="events" redirectPath="/" />}
       </div>
 
       <div className="max-w-md mx-auto p-6">
