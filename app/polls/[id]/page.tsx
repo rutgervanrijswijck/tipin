@@ -17,72 +17,87 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // 1. Fetch Poll + Votes + User Profiles
+  // 1. Fetch Poll + Votes
   const { data: poll } = await supabase
     .from('polls')
-    .select('*, poll_votes(option_index, profiles(id, full_name))')
+    .select('*, poll_votes(user_id, option_index, profiles(id, full_name))')
     .eq('id', id)
     .single()
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   const isAanvoerder = profile?.role === 'coach'
 
-  if (!poll) return <div className="p-6">Poll not found</div>
+  // 2. Fetch ALL Profiles to calculate missing
+  const { data: allPlayers } = await supabase.from('profiles').select('id, full_name')
 
-  const myVote = poll.poll_votes.find((v: any) => v.profiles.id === user.id)
+  if (!poll || !allPlayers) return <div className="p-6">Poll not found</div>
+
+  const myVote = poll.poll_votes.find((v: any) => v.user_id === user.id)
+  
+  // Logic: Who hasn't voted?
+  const votedUserIds = poll.poll_votes.map((v: any) => v.user_id)
+  const noVotePlayers = allPlayers.filter(p => !votedUserIds.includes(p.id))
 
   return (
     <main className="min-h-screen bg-gray-50 pb-10">
-      {/* Header */}
       <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/?tab=polls" className="p-2 -ml-2 text-gray-900 hover:bg-gray-300 rounded-full">←</Link>
-          <h1 className="font-bold text-gray-900">Poll Details</h1>
+          <Link href="/?tab=polls" className="p-2 -ml-2 hover:bg-gray-100 rounded-full">←</Link>
+          <h1 className="font-bold text-lg">Poll Details</h1>
         </div>
         {isAanvoerder && <DeleteButton id={poll.id} table="polls" redirectPath="/?tab=polls" />}
       </div>
-    
+
       <div className="max-w-md mx-auto p-6 space-y-6">
         
-        {/* The Active Poll Card */}
+        {/* Pass detailLink={null} so the title is NOT clickable here */}
         <PollCard 
            poll={poll} 
            userId={user.id} 
            myVoteIndex={myVote ? myVote.option_index : null} 
+           detailLink={null} 
         />
 
-        {/* Detailed Breakdown */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
-             <h3 className="font-bold text-gray-700">Who voted what?</h3>
+             <h3 className="font-bold text-gray-700">Breakdown</h3>
           </div>
           
           <div className="divide-y divide-gray-100">
+            {/* Voted Options */}
             {poll.options.map((option: string, idx: number) => {
-              // Filter votes for this specific option
               const voters = poll.poll_votes.filter((v: any) => v.option_index === idx)
-              
               return (
                 <div key={idx} className="p-4">
                    <div className="flex justify-between mb-2">
                      <span className="font-semibold text-gray-900">{option}</span>
                      <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 font-bold">{voters.length}</span>
                    </div>
-                   
-                   {voters.length === 0 ? (
-                     <p className="text-xs text-gray-400 italic">No votes yet</p>
-                   ) : (
-                     <div className="flex flex-wrap gap-2">
-                       {voters.map((v: any) => (
-                         <span key={v.profiles.id} className="text-xs border px-2 py-1 rounded-full bg-gray-50 text-gray-700">
-                           {v.profiles.full_name}
-                         </span>
-                       ))}
-                     </div>
-                   )}
+                   <div className="flex flex-wrap gap-2">
+                     {voters.map((v: any) => (
+                       <span key={v.user_id} className="text-xs border px-2 py-1 rounded-full bg-gray-50 text-gray-700">
+                         {v.profiles.full_name}
+                       </span>
+                     ))}
+                   </div>
                 </div>
               )
             })}
+
+            {/* No Vote Section */}
+            <div className="p-4 bg-red-50/30">
+               <div className="flex justify-between mb-2">
+                 <span className="font-semibold text-red-900">No Response</span>
+                 <span className="text-xs bg-red-100 px-2 py-1 rounded text-red-800 font-bold">{noVotePlayers.length}</span>
+               </div>
+               <div className="flex flex-wrap gap-2">
+                 {noVotePlayers.map((p) => (
+                   <span key={p.id} className="text-xs border border-red-100 px-2 py-1 rounded-full bg-white text-gray-500 italic">
+                     {p.full_name}
+                   </span>
+                 ))}
+               </div>
+            </div>
           </div>
         </div>
 

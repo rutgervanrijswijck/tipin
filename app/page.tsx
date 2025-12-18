@@ -32,39 +32,47 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   // --- FETCH LOGIC ---
   let futureEvents: any[] = []
   let pastEvents: any[] = []
-  let polls: any[] = []
-
+  // We initialize polls, but we will fetch them regardless of the tab now
+  
   const todayStr = new Date().toISOString()
 
+  // 1. ALWAYS Fetch Polls (Required for the Notification Bubble)
+  const { data: pollsData } = await supabase
+      .from('polls')
+      .select('*, poll_votes(user_id, option_index)')
+      .order('created_at', { ascending: false })
+  
+  const polls = pollsData || []
+
+  // 2. Fetch Events (Only needed for Schedule tab)
   if (activeTab === 'schedule') {
-    // 1. Fetch Future Events (Always show all)
+    // Fetch Future Events
     const { data: futures } = await supabase
       .from('events')
       .select('*, attendance(user_id, status, reason)') 
-      .gte('start_time', todayStr) // Greater than or equal to today
+      .gte('start_time', todayStr)
       .order('start_time', { ascending: true })
     futureEvents = futures || []
 
-    // 2. Fetch Past Events (Only if requested)
+    // Fetch Past Events (Only if requested via 'Load Earlier')
+    const pastLimit = parseInt(past || '0', 10)
     if (pastLimit > 0) {
       const { data: pasts } = await supabase
         .from('events')
         .select('*, attendance(user_id, status, reason)') 
-        .lt('start_time', todayStr) // Less than today
-        .order('start_time', { ascending: false }) // Newest past event first
+        .lt('start_time', todayStr)
+        .order('start_time', { ascending: false })
         .limit(pastLimit)
       
-      // Reverse them so they appear chronologically (Oldest -> Newest) at the top
       pastEvents = (pasts || []).reverse()
     }
-
-  } else {
-    const { data } = await supabase
-      .from('polls')
-      .select('*, poll_votes(user_id, option_index)')
-      .order('created_at', { ascending: false })
-    polls = data || []
   }
+
+  // Calculate the notification count (This now works on ALL tabs)
+  const unansweredPollsCount = polls.filter(poll => {
+    const hasVoted = poll.poll_votes.some((v: any) => v.user_id === user.id)
+    return !hasVoted
+  }).length
 
   const getCounts = (attendance: any[]) => ({
     in: attendance.filter(a => a.status === 'in').length,
@@ -191,23 +199,28 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
 
         {/* POLLS TAB */}
         {activeTab === 'polls' && (
-           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {isAanvoerder && <CreatePollForm />}
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {isAanvoerder && <CreatePollForm />}
 
-              {polls.map(poll => {
-                 const myVote = poll.poll_votes.find((v: any) => v.user_id === user.id)
-                 return (
-                   // Wrapped in Link to go to Poll Details
-                   <Link key={poll.id} href={`/polls/${poll.id}`} className="block">
-                     <PollCard 
-                        poll={poll} 
-                        userId={user.id} 
-                        myVoteIndex={myVote ? myVote.option_index : null} 
-                     />
-                   </Link>
-                 )
-              })}
-           </div>
+            {polls.map(poll => {
+              const myVote = poll.poll_votes.find((v: any) => v.user_id === user.id)
+              return (
+                <PollCard 
+                  key={poll.id} 
+                  poll={poll} 
+                  userId={user.id} 
+                  myVoteIndex={myVote ? myVote.option_index : null}
+                  detailLink={`/polls/${poll.id}`} 
+                />
+              )
+            })}
+            {polls.length === 0 && (
+              <div className="text-center text-gray-800 py-20 opacity-70">
+                <div className="text-6xl mb-4">📊</div>
+                <p>No polls active</p>
+              </div>
+            )}
+          </div>
         )}
 
         {/* TEAM TAB */}
@@ -228,7 +241,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
 
       </div>
 
-      <BottomNav />
+      <BottomNav notificationCount={unansweredPollsCount} />
     </main>
   )
 }
