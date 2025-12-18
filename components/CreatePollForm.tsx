@@ -60,12 +60,12 @@ export default function CreatePollForm() {
         <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
       </div>
       
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3 text-gray-600">
         <input 
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           required 
-          placeholder="Question (e.g. Driver for Saturday?)" 
+          placeholder="Question (e.g. who is the biggest VO baas?)" 
           className="w-full p-2 border rounded-lg font-medium" 
         />
         
