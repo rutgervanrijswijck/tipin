@@ -28,7 +28,7 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
   const isAanvoerder = profile?.role === 'captain'
 
   // 2. Fetch ALL Profiles to calculate missing
-  const { data: allPlayers } = await supabase.from('profiles').select('id, full_name')
+  const { data: allPlayers } = await supabase.from('profiles').select('id, full_name, status')
 
   if (!poll || !allPlayers) return <div className="p-6">Poll not found</div>
 
@@ -36,6 +36,7 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
   
   // Logic: Who hasn't voted?
   const votedUserIds = poll.poll_votes.map((v: any) => v.user_id)
+  const noVotePlayers = allPlayers.filter(p => p.status !== 'retired' && !votedUserIds.includes(p.id))
   const missingPlayers = allPlayers.filter(p => p.status === 'active' && !votedUserIds.includes(p.id))
 
   // --- LAZY PENALTY CALCULATION ---
