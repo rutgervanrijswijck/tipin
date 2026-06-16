@@ -10,6 +10,7 @@ export default function CreatePollForm() {
   const [options, setOptions] = useState(['', '']) // Start with 2 empty options
   const [maxChoices, setMaxChoices] = useState<number>(1)
   const [relevantDate, setRelevantDate] = useState<string>('')
+  const [answerBy, setAnswerBy] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
