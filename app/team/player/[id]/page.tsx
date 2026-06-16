@@ -30,9 +30,9 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
     .eq('user_id', id)
 
   const calcRate = (types: string[]) => {
-    const relevant = attendanceData?.filter(a => a.events && types.includes(a.events.event_type as string)) || []
+    const relevant = attendanceData?.filter(a => a.events && types.includes((a.events as any).event_type as string)) || []
     if (relevant.length === 0) return '-'
-    const present = relevant.filter(a => a.status === 'present').length
+    const present = relevant.filter(a => a.status === 'in').length
     return Math.round((present / relevant.length) * 100) + '%'
   }
 
