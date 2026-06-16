@@ -32,7 +32,7 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
 
   if (!poll || !allPlayers) return <div className="p-6">Poll not found</div>
 
-  const myVote = poll.poll_votes.find((v: any) => v.user_id === user.id)
+  const myVotes = poll.poll_votes.filter((v: any) => v.user_id === user.id).map((v: any) => v.option_index)
   
   // Logic: Who hasn't voted?
   const votedUserIds = poll.poll_votes.map((v: any) => v.user_id)
@@ -54,7 +54,7 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
         <PollCard 
            poll={poll} 
            userId={user.id} 
-           myVoteIndex={myVote ? myVote.option_index : null} 
+           myVotes={myVotes} 
            detailLink={null} 
         />
 

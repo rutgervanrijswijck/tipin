@@ -7,11 +7,14 @@ import CreateEventForm from '@/components/CreateEventForm'
 import CreatePollForm from '@/components/CreatePollForm'
 import PollCard from '@/components/PollCard'
 import BottomNav from '@/components/BottomNav'
+import TeamHub from '@/components/TeamHub'
+import CalendarView from '@/components/CalendarView'
 
-// Add 'past' to the searchParams type
-export default async function Home({ searchParams }: { searchParams: Promise<{ tab?: string, past?: string }> }) {
-  const { tab, past } = await searchParams
+// Add 'past' and 'view' to the searchParams type
+export default async function Home({ searchParams }: { searchParams: Promise<{ tab?: string, past?: string, view?: string }> }) {
+  const { tab, past, view } = await searchParams
   const activeTab = tab === 'polls' ? 'polls' : tab === 'team' ? 'team' : 'schedule'
+  const isCalendarView = view === 'calendar'
   
   // Parse how many past items to show (default 0)
   const pastLimit = parseInt(past || '0', 10)
@@ -66,6 +69,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       
       pastEvents = (pasts || []).reverse()
     }
+  }
+
+  // 3. Fetch Team Profiles (Only needed for Team tab)
+  let teamProfiles: any[] = []
+  if (activeTab === 'team') {
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('full_name', { ascending: true })
+    teamProfiles = profilesData || []
   }
 
   // Calculate the notification count (This now works on ALL tabs)
@@ -168,32 +181,44 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
         {/* SCHEDULE TAB */}
         {activeTab === 'schedule' && (
           <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {isAanvoerder && <CreateEventForm userId={user.id} />}
-            
-            {/* 1. LOAD EARLIER BUTTON */}
-            <div className="flex justify-center mb-4">
-               <Link 
-                 href={`/?past=${pastLimit + 10}`} 
-                 scroll={false} // Prevents jumping to top of page
-                 className="text-xs font-semibold text-gray-500 bg-gray-200 px-4 py-2 rounded-full hover:bg-gray-300 transition"
-               >
-                 {pastLimit === 0 ? 'Load earlier events' : 'Load 10 more previous events'}
-               </Link>
+            {/* View Toggle */}
+            <div className="flex bg-gray-200 p-1 rounded-lg w-fit mx-auto mb-4">
+              <Link href={`/?tab=schedule&view=list`} scroll={false} className={`px-4 py-1 text-sm rounded-md font-semibold transition-all ${!isCalendarView ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>List</Link>
+              <Link href={`/?tab=schedule&view=calendar`} scroll={false} className={`px-4 py-1 text-sm rounded-md font-semibold transition-all ${isCalendarView ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>Calendar</Link>
             </div>
 
-            {/* 2. PAST EVENTS (Slightly faded) */}
-            {pastEvents.map((event) => (
-               <EventCard key={event.id} event={event} opacity={0.6} />
-            ))}
+            {isCalendarView ? (
+              <CalendarView events={[...pastEvents, ...futureEvents]} polls={polls.filter(p => p.relevant_date)} />
+            ) : (
+              <>
+                {isAanvoerder && <CreateEventForm userId={user.id} />}
+                
+                {/* 1. LOAD EARLIER BUTTON */}
+                <div className="flex justify-center mb-4">
+                   <Link 
+                     href={`/?past=${pastLimit + 10}`} 
+                     scroll={false} // Prevents jumping to top of page
+                     className="text-xs font-semibold text-gray-500 bg-gray-200 px-4 py-2 rounded-full hover:bg-gray-300 transition"
+                   >
+                     {pastLimit === 0 ? 'Load earlier events' : 'Load 10 more previous events'}
+                   </Link>
+                </div>
 
-            {/* Divider if we have past events */}
-            {pastEvents.length > 0 && <div className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest my-4">Today</div>}
+                {/* 2. PAST EVENTS (Slightly faded) */}
+                {pastEvents.map((event) => (
+                   <EventCard key={event.id} event={event} opacity={0.6} />
+                ))}
 
-            {/* 3. FUTURE EVENTS */}
-            {futureEvents.length === 0 && <div className="text-center text-gray-400 py-10">No upcoming events.</div>}
-            {futureEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
+                {/* Divider if we have past events */}
+                {pastEvents.length > 0 && <div className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest my-4">Today</div>}
+
+                {/* 3. FUTURE EVENTS */}
+                {futureEvents.length === 0 && <div className="text-center text-gray-400 py-10">No upcoming events.</div>}
+                {futureEvents.map((event) => (
+                  <EventCard key={event.id} event={event} />
+                ))}
+              </>
+            )}
           </div>
         )}
 
@@ -203,13 +228,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
             {isAanvoerder && <CreatePollForm />}
 
             {polls.map(poll => {
-              const myVote = poll.poll_votes.find((v: any) => v.user_id === user.id)
+              const myVotes = poll.poll_votes.filter((v: any) => v.user_id === user.id).map((v: any) => v.option_index)
               return (
                 <PollCard 
                   key={poll.id} 
                   poll={poll} 
                   userId={user.id} 
-                  myVoteIndex={myVote ? myVote.option_index : null}
+                  myVotes={myVotes}
                   detailLink={`/polls/${poll.id}`} 
                 />
               )
@@ -224,20 +249,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
         )}
 
         {/* TEAM TAB */}
-          {activeTab === 'team' && (
-            <div className="flex flex-col items-center justify-center pt-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="bg-white p-8 rounded-full shadow-sm mb-6">
-                  <span className="text-4xl">🚧</span>
-              </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Team Hub</h2>
-              <p className="text-gray-500 text-center max-w-xs">
-                We are building a space for team stats, contact info, and role management.
-              </p>
-              <span className="mt-8 px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full uppercase tracking-wider">
-                Coming Soon
-              </span>
-            </div>
-          )}
+        {activeTab === 'team' && (
+          <TeamHub profiles={teamProfiles} currentUserRole={profile?.role} currentUserId={user.id} />
+        )}
 
       </div>
 
