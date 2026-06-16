@@ -2,13 +2,14 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function TeamHub({ profiles, currentUserRole, currentUserId }: { profiles: any[], currentUserRole: string, currentUserId: string }) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const supabase = createClient()
   const router = useRouter()
 
-  const isCoach = currentUserRole === 'coach'
+  const isCaptain = currentUserRole === 'captain'
 
   const handleUpdate = async (id: string, field: string, value: string) => {
     setLoadingId(id)
@@ -32,8 +33,8 @@ export default function TeamHub({ profiles, currentUserRole, currentUserId }: { 
 
   const ProfileCard = ({ profile }: { profile: any }) => {
     const isMe = profile.id === currentUserId
-    const canEditStatus = isCoach || (isMe && profile.status !== 'retired')
-    const canEditRole = isCoach
+    const canEditStatus = isCaptain || (isMe && profile.status !== 'retired')
+    const canEditRole = isCaptain
 
     return (
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all">
@@ -46,10 +47,10 @@ export default function TeamHub({ profiles, currentUserRole, currentUserId }: { 
             )}
           </div>
           <div>
-            <h3 className="font-bold text-gray-900 flex items-center gap-2">
+            <Link href={`/team/player/${profile.id}`} className="font-bold text-gray-900 flex items-center gap-2 hover:text-blue-600 transition">
               {profile.full_name}
               {isMe && <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase font-bold tracking-wide">You</span>}
-            </h3>
+            </Link>
             <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
               {canEditRole ? (
                 <select 
@@ -59,10 +60,11 @@ export default function TeamHub({ profiles, currentUserRole, currentUserId }: { 
                   className="bg-gray-50 border rounded px-1 py-0.5 outline-none"
                 >
                   <option value="player">Player</option>
-                  <option value="coach">Coach</option>
+                  <option value="trainer">Trainer</option>
+                  <option value="captain">Captain</option>
                 </select>
               ) : (
-                <span className={`px-2 py-0.5 rounded-full font-semibold ${profile.role === 'coach' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
+                <span className={`px-2 py-0.5 rounded-full font-semibold ${profile.role === 'captain' ? 'bg-purple-100 text-purple-700' : profile.role === 'trainer' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700'}`}>
                   {profile.role}
                 </span>
               )}

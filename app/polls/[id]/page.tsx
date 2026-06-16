@@ -25,7 +25,7 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
     .single()
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  const isAanvoerder = profile?.role === 'coach'
+  const isAanvoerder = profile?.role === 'captain'
 
   // 2. Fetch ALL Profiles to calculate missing
   const { data: allPlayers } = await supabase.from('profiles').select('id, full_name')
@@ -36,7 +36,34 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
   
   // Logic: Who hasn't voted?
   const votedUserIds = poll.poll_votes.map((v: any) => v.user_id)
-  const noVotePlayers = allPlayers.filter(p => !votedUserIds.includes(p.id))
+  const missingPlayers = allPlayers.filter(p => p.status === 'active' && !votedUserIds.includes(p.id))
+
+  // --- LAZY PENALTY CALCULATION ---
+  if (poll.answer_by && new Date(poll.answer_by) < new Date() && missingPlayers.length > 0) {
+    const { data: boeteType } = await supabase.from('boete_types').select('id, default_amount').eq('name', 'Missed deadline').single()
+    if (boeteType) {
+      // Note: Since this is a poll and we don't have a poll_id in boetes, we can save it with just the reason for now, 
+      // or we can add a 'poll_id' to boetes if we need strong relational ties. But reason is fine.
+      // We will check for existing penalties by reason string to prevent duplicates.
+      const reasonStr = `Missed deadline for poll: ${poll.question}`
+      const { data: existingFines } = await supabase.from('boetes').select('user_id').eq('boete_type_id', boeteType.id).eq('reason', reasonStr)
+      const existingUserIds = existingFines?.map(f => f.user_id) || []
+      
+      const newFines = missingPlayers
+        .filter(p => !existingUserIds.includes(p.id))
+        .map(p => ({
+          user_id: p.id,
+          boete_type_id: boeteType.id,
+          amount: boeteType.default_amount,
+          reason: reasonStr
+        }))
+        
+      if (newFines.length > 0) {
+        await supabase.from('boetes').insert(newFines)
+      }
+    }
+  }
+  // ---------------------------------
 
   return (
     <main className="min-h-screen bg-gray-50 pb-10">

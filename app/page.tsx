@@ -1,14 +1,13 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import AttendanceToggle from '@/components/AttendanceToggle'
-import CreateEventForm from '@/components/CreateEventForm'
+import Link from 'next/link'
 import CreatePollForm from '@/components/CreatePollForm'
 import PollCard from '@/components/PollCard'
 import BottomNav from '@/components/BottomNav'
-import TeamHub from '@/components/TeamHub'
 import CalendarView from '@/components/CalendarView'
+import AttendanceToggle from '@/components/AttendanceToggle'
+import CreateEventForm from '@/components/CreateEventForm'
 
 // Add 'past' and 'view' to the searchParams type
 export default async function Home({ searchParams }: { searchParams: Promise<{ tab?: string, past?: string, view?: string }> }) {
@@ -30,7 +29,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-  const isAanvoerder = profile?.role === 'coach'
+  const isAanvoerder = profile?.role === 'captain'
 
   // --- FETCH LOGIC ---
   let futureEvents: any[] = []
@@ -71,16 +70,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     }
   }
 
-  // 3. Fetch Team Profiles (Only needed for Team tab)
-  let teamProfiles: any[] = []
-  if (activeTab === 'team') {
-    const { data: profilesData } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('full_name', { ascending: true })
-    teamProfiles = profilesData || []
-  }
-
   // Calculate the notification count (This now works on ALL tabs)
   const unansweredPollsCount = polls.filter(poll => {
     const hasVoted = poll.poll_votes.some((v: any) => v.user_id === user.id)
@@ -102,8 +91,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       <Link href={`/events/${event.id}`} className="block group">
         <div className={`bg-white p-3 rounded-r-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white group-hover:border-blue-200 transition-all duration-300 relative overflow-hidden pl-7`} style={{ opacity }}>
           
-          <div className={`absolute left-0 top-0 bottom-0 w-2.5 
-            ${event.event_type === 'game' ? 'bg-orange-500' : event.event_type === 'training' ? 'bg-blue-500' : 'bg-green-500'}`} 
+          <div className={`w-2 h-full absolute left-0 top-0 
+            ${event.event_type === 'match_home' || event.event_type === 'match_away' ? 'bg-orange-500' : event.event_type === 'training' ? 'bg-blue-500' : 'bg-green-500'}`} 
           />
 
           <div className="mb-4 flex justify-between items-start gap-4">
@@ -112,9 +101,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                 {new Date(event.start_time).toLocaleDateString('nl-NL', { weekday: 'long' })}
               </p>
               <h2 className="text-xl font-bold text-gray-900 leading-tight">
-                <span className="mr-2">
-                  {event.event_type === 'game' ? '⚔️' : event.event_type === 'training' ? '🏋️' : '🍻'}
-                </span>
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl shadow-sm mb-2">
+                  {event.event_type === 'match_home' || event.event_type === 'match_away' ? '⚔️' : event.event_type === 'training' ? '🏋️' : '🍻'}
+                </div>
                 {event.title}
               </h2>
             </div>
@@ -162,9 +151,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <p className="text-gray-500 font-medium text-sm">
+            <Link href={`/team/player/${user.id}`} className="text-gray-500 font-medium text-sm hover:text-blue-600 transition">
               {profile?.full_name?.split(' ')[0]}
-            </p>
+            </Link>
             <form action="/auth/signout" method="post">
               <button className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -188,7 +177,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
             </div>
 
             {isCalendarView ? (
-              <CalendarView events={[...pastEvents, ...futureEvents]} polls={polls.filter(p => p.relevant_date)} />
+              <CalendarView events={[...pastEvents, ...futureEvents]} polls={polls.filter(p => p.relevant_date)} userId={user.id} />
             ) : (
               <>
                 {isAanvoerder && <CreateEventForm userId={user.id} />}
@@ -250,7 +239,27 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
 
         {/* TEAM TAB */}
         {activeTab === 'team' && (
-          <TeamHub profiles={teamProfiles} currentUserRole={profile?.role} currentUserId={user.id} />
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-6">
+             <h2 className="text-2xl font-bold text-gray-900 mb-6 px-2">Team Headquarters</h2>
+             <div className="grid grid-cols-2 gap-4">
+                <Link href="/team/roster" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 hover:shadow-md transition">
+                   <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl">👥</div>
+                   <span className="font-bold text-gray-800">Roster</span>
+                </Link>
+                <Link href="/team/stats" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 hover:shadow-md transition">
+                   <div className="w-14 h-14 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-3xl">📊</div>
+                   <span className="font-bold text-gray-800">Stats</span>
+                </Link>
+                <Link href="/team/adt-timer" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 hover:shadow-md transition">
+                   <div className="w-14 h-14 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center text-3xl">⏱️</div>
+                   <span className="font-bold text-gray-800">Adt-Timer</span>
+                </Link>
+                <Link href="/team/boetes" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 hover:shadow-md transition">
+                   <div className="w-14 h-14 bg-red-50 text-red-600 rounded-full flex items-center justify-center text-3xl">💸</div>
+                   <span className="font-bold text-gray-800">Boetes</span>
+                </Link>
+             </div>
+          </div>
         )}
 
       </div>

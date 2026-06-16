@@ -33,7 +33,8 @@ export default function CreatePollForm() {
       question,
       options: validOptions,
       max_choices: maxChoices,
-      relevant_date: relevantDate ? new Date(relevantDate).toISOString() : null
+      relevant_date: relevantDate ? new Date(relevantDate).toISOString() : null,
+      answer_by: answerBy ? new Date(answerBy).toISOString() : null
     })
 
     if (!error) {
@@ -42,6 +43,7 @@ export default function CreatePollForm() {
       setOptions(['', ''])
       setMaxChoices(1)
       setRelevantDate('')
+      setAnswerBy('')
       router.refresh()
     } else {
       alert(error.message)
@@ -86,14 +88,24 @@ export default function CreatePollForm() {
             />
           </div>
           <div className="flex-1">
-            <label className="text-xs font-bold text-gray-500 mb-1 block">Date (Optional)</label>
+            <label className="text-xs font-bold text-gray-500 mb-1 block">Relevant Date (Optional)</label>
             <input 
-              type="datetime-local"
+              type="date"
               value={relevantDate}
               onChange={(e) => setRelevantDate(e.target.value)}
               className="w-full p-2 border rounded-lg text-sm bg-gray-50" 
             />
           </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-gray-500 mb-1 block">Answer By Deadline (Optional)</label>
+          <input 
+            type="datetime-local"
+            value={answerBy}
+            onChange={(e) => setAnswerBy(e.target.value)}
+            className="w-full p-2 border rounded-lg text-sm bg-gray-50" 
+          />
         </div>
 
         <div className="space-y-2">
