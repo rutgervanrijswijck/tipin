@@ -1,8 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { togglePollVoteServer } from '@/app/polls/actions'
 
 export default function PollCard({ poll, userId, myVotes = [], counts = [], uniqueVoters = 0, detailLink }: any) {
   const [loading, setLoading] = useState(false)
@@ -10,14 +10,17 @@ export default function PollCard({ poll, userId, myVotes = [], counts = [], uniq
   const [voteCounts, setVoteCounts] = useState<number[]>(counts)
   const [totalVoters, setTotalVoters] = useState<number>(uniqueVoters)
 
-  const supabase = createClient()
   const router = useRouter()
+
+  // Use primitive keys to prevent unnecessary useEffect overwrites on parent re-renders
+  const myVotesKey = (myVotes || []).slice().sort().join(',')
+  const countsKey = (counts || []).join(',')
 
   useEffect(() => {
     setSelectedVotes(myVotes || [])
     setVoteCounts(counts || [])
     setTotalVoters(uniqueVoters || 0)
-  }, [myVotes, counts, uniqueVoters])
+  }, [myVotesKey, countsKey, uniqueVoters])
 
   const hasVoted = selectedVotes && selectedVotes.length > 0
   const maxChoices = poll.max_choices || 1
@@ -46,23 +49,12 @@ export default function PollCard({ poll, userId, myVotes = [], counts = [], uniq
         setTotalVoters(Math.max(0, totalVoters - 1))
       }
 
-      // Execute delete in Supabase
-      let deleteQuery = supabase
-        .from('poll_votes')
-        .delete()
-        .eq('poll_id', poll.id)
-        .eq('user_id', userId)
+      // Execute unvote via server action
+      const result = await togglePollVoteServer(poll.id, index)
 
-      // If multiple choices, target the specific option
-      if (maxChoices > 1) {
-        deleteQuery = deleteQuery.eq('option_index', index)
-      }
-
-      const { error } = await deleteQuery
-
-      if (error) {
-        console.error("Failed to unvote:", error)
-        alert("Failed to unvote: " + error.message)
+      if (!result.success) {
+        console.error("Failed to unvote:", result.error)
+        alert("Failed to unvote: " + result.error)
         setSelectedVotes(prevVotes)
         setVoteCounts(prevCounts)
         setTotalVoters(prevTotal)
@@ -86,20 +78,11 @@ export default function PollCard({ poll, userId, myVotes = [], counts = [], uniq
           setTotalVoters(totalVoters + 1)
         }
 
-        // Delete any existing vote, then insert
-        await supabase
-          .from('poll_votes')
-          .delete()
-          .eq('poll_id', poll.id)
-          .eq('user_id', userId)
+        const result = await togglePollVoteServer(poll.id, index)
 
-        const { error } = await supabase
-          .from('poll_votes')
-          .insert({ poll_id: poll.id, user_id: userId, option_index: index })
-
-        if (error) {
-          console.error("Failed to vote:", error)
-          alert("Failed to vote: " + error.message)
+        if (!result.success) {
+          console.error("Failed to vote:", result.error)
+          alert("Failed to vote: " + result.error)
           setSelectedVotes(prevVotes)
           setVoteCounts(prevCounts)
           setTotalVoters(prevTotal)
@@ -125,13 +108,11 @@ export default function PollCard({ poll, userId, myVotes = [], counts = [], uniq
           setTotalVoters(totalVoters + 1)
         }
 
-        const { error } = await supabase
-          .from('poll_votes')
-          .insert({ poll_id: poll.id, user_id: userId, option_index: index })
+        const result = await togglePollVoteServer(poll.id, index)
 
-        if (error) {
-          console.error("Failed to vote:", error)
-          alert("Failed to vote: " + error.message)
+        if (!result.success) {
+          console.error("Failed to vote:", result.error)
+          alert("Failed to vote: " + result.error)
           setSelectedVotes(prevVotes)
           setVoteCounts(prevCounts)
           setTotalVoters(prevTotal)
@@ -173,7 +154,12 @@ export default function PollCard({ poll, userId, myVotes = [], counts = [], uniq
         )}
         {maxChoices > 1 && (
            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mt-1">
-             Select up to {maxChoices} options
+             Select up to {maxChoices} options (click selected to unvote)
+           </p>
+        )}
+        {maxChoices === 1 && hasVoted && (
+           <p className="text-[10px] font-semibold text-gray-400 mt-1">
+             Click your selected option to unvote
            </p>
         )}
       </div>
@@ -190,17 +176,18 @@ export default function PollCard({ poll, userId, myVotes = [], counts = [], uniq
               key={idx}
               disabled={loading}
               onClick={() => handleVote(idx)}
-              className={`relative w-full text-left p-3 rounded-lg border transition-all overflow-hidden
-                ${isSelected ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}
+              className={`relative w-full text-left p-3 rounded-lg border transition-all overflow-hidden cursor-pointer
+                ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/70 shadow-xs' : 'border-gray-200 hover:bg-gray-50'}
               `}
             >
               <div 
                 className="absolute top-0 left-0 bottom-0 bg-blue-100 transition-all duration-500" 
-                style={{ width: `${Math.min(percent, 100)}%`, opacity: 0.5 }} 
+                style={{ width: `${Math.min(percent, 100)}%`, opacity: isSelected ? 0.6 : 0.35 }} 
               />
               
               <div className="relative flex justify-between items-center z-10">
-                <span className={`text-sm font-medium ${isSelected ? 'text-blue-700' : 'text-gray-700'}`}>
+                <span className={`text-sm font-medium flex items-center gap-2 ${isSelected ? 'text-blue-700 font-bold' : 'text-gray-700'}`}>
+                  {isSelected && <span className="text-blue-600 text-xs">✓</span>}
                   {opt}
                 </span>
                 <span className="text-xs text-gray-500 font-semibold">{count} ({percent}%)</span>
@@ -209,7 +196,7 @@ export default function PollCard({ poll, userId, myVotes = [], counts = [], uniq
           )
         })}
       </div>
-      <p className="text-xs text-gray-400 mt-3 text-right">{totalVoters} people voted</p>
+      <p className="text-xs text-gray-400 mt-3 text-right">{totalVoters} {totalVoters === 1 ? 'person' : 'people'} voted</p>
     </div>
   )
 }
