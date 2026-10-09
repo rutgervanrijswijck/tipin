@@ -23,6 +23,8 @@ export default function CreateEventForm({ userId }: { userId: string }) {
     const startTimeStr = formData.get('date') as string
     const reqOut = formData.get('req_out') === 'on'
     const reqMaybe = formData.get('req_maybe') === 'on'
+    const answerByStr = formData.get('answer_by') as string
+    const answerBy = answerByStr ? new Date(answerByStr).toISOString() : null
     
     // 2. Handle Recurring Logic
     const eventsToInsert = []
@@ -52,6 +54,7 @@ export default function CreateEventForm({ userId }: { userId: string }) {
           location,
           reason_required_out: reqOut,
           reason_required_maybe: reqMaybe,
+          answer_by: answerBy,
         })
 
         // Add 7 days
@@ -66,6 +69,7 @@ export default function CreateEventForm({ userId }: { userId: string }) {
         location,
         reason_required_out: reqOut,
         reason_required_maybe: reqMaybe,
+        answer_by: answerBy,
       })
     }
 
@@ -105,7 +109,8 @@ export default function CreateEventForm({ userId }: { userId: string }) {
         <div className="flex gap-2">
           <select name="type" className="p-2 text-gray-800 border rounded-lg bg-white flex-1">
             <option value="training">Training</option>
-            <option value="game">Game</option>
+            <option value="match_home">Match (Home)</option>
+            <option value="match_away">Match (Away)</option>
             <option value="social">Social</option>
           </select>
           <input name="location" placeholder="Location" className="p-2 text border rounded-lg flex-1" />
@@ -114,6 +119,11 @@ export default function CreateEventForm({ userId }: { userId: string }) {
         <div>
            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Start Date & Time</label>
            <input name="date" type="datetime-local" required className="w-full p-2 border rounded-lg text-gray-600" />
+        </div>
+
+        <div>
+           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Answer By Deadline (Optional)</label>
+           <input name="answer_by" type="datetime-local" className="w-full p-2 border rounded-lg text-gray-600" />
         </div>
 
         {/* RECURRING SECTION */}

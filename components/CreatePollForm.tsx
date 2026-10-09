@@ -8,6 +8,9 @@ export default function CreatePollForm() {
   const [isOpen, setIsOpen] = useState(false)
   const [question, setQuestion] = useState('')
   const [options, setOptions] = useState(['', '']) // Start with 2 empty options
+  const [maxChoices, setMaxChoices] = useState<number>(1)
+  const [relevantDate, setRelevantDate] = useState<string>('')
+  const [answerBy, setAnswerBy] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -29,13 +32,19 @@ export default function CreatePollForm() {
 
     const { error } = await supabase.from('polls').insert({
       question,
-      options: validOptions
+      options: validOptions,
+      max_choices: maxChoices,
+      relevant_date: relevantDate ? new Date(relevantDate).toISOString() : null,
+      answer_by: answerBy ? new Date(answerBy).toISOString() : null
     })
 
     if (!error) {
       setIsOpen(false)
       setQuestion('')
       setOptions(['', ''])
+      setMaxChoices(1)
+      setRelevantDate('')
+      setAnswerBy('')
       router.refresh()
     } else {
       alert(error.message)
@@ -69,6 +78,37 @@ export default function CreatePollForm() {
           className="w-full p-2 border rounded-lg font-medium" 
         />
         
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <label className="text-xs font-bold text-gray-500 mb-1 block">Max Choices</label>
+            <input 
+              type="number" min="1"
+              value={maxChoices}
+              onChange={(e) => setMaxChoices(parseInt(e.target.value))}
+              className="w-full p-2 border rounded-lg text-sm bg-gray-50" 
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs font-bold text-gray-500 mb-1 block">Relevant Date (Optional)</label>
+            <input 
+              type="date"
+              value={relevantDate}
+              onChange={(e) => setRelevantDate(e.target.value)}
+              className="w-full p-2 border rounded-lg text-sm bg-gray-50" 
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-gray-500 mb-1 block">Answer By Deadline (Optional)</label>
+          <input 
+            type="datetime-local"
+            value={answerBy}
+            onChange={(e) => setAnswerBy(e.target.value)}
+            className="w-full p-2 border rounded-lg text-sm bg-gray-50" 
+          />
+        </div>
+
         <div className="space-y-2">
           {options.map((opt, idx) => (
             <input 

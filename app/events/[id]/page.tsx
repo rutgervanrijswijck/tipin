@@ -19,13 +19,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   if (!user) redirect('/login')
 
   // 2. GET PROFILE (Now safe to use user.id)
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-  
-  const isAanvoerder = profile?.role === 'coach'
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  const isAanvoerder = profile?.role === 'captain'
 
   // 3. GET EVENT DATA
   const { data: event } = await supabase

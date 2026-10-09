@@ -4,32 +4,59 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-export default function PollCard({ poll, userId, myVoteIndex, detailLink }: any) {
+export default function PollCard({ poll, userId, myVotes = [], detailLink }: any) {
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
   const router = useRouter()
 
-  const totalVotes = poll.poll_votes.length
   const counts = poll.options.map((_: any, index: number) => 
-    poll.poll_votes.filter((v: any) => v.option_index === index).length
+    poll.poll_votes ? poll.poll_votes.filter((v: any) => v.option_index === index).length : 0
   )
 
-  const hasVoted = myVoteIndex !== null && myVoteIndex !== undefined
+  const hasVoted = myVotes && myVotes.length > 0
+  const maxChoices = poll.max_choices || 1
 
   const handleVote = async (index: number) => {
     setLoading(true)
-    const { error } = await supabase
-      .from('poll_votes')
-      .upsert({ poll_id: poll.id, user_id: userId, option_index: index }, { onConflict: 'poll_id, user_id' })
-    
-    if (!error) router.refresh()
+    const isSelected = myVotes.includes(index)
+
+    if (isSelected) {
+      await supabase
+        .from('poll_votes')
+        .delete()
+        .eq('poll_id', poll.id)
+        .eq('user_id', userId)
+        .eq('option_index', index)
+    } else {
+      if (maxChoices === 1) {
+        await supabase
+          .from('poll_votes')
+          .delete()
+          .eq('poll_id', poll.id)
+          .eq('user_id', userId)
+        
+        await supabase
+          .from('poll_votes')
+          .insert({ poll_id: poll.id, user_id: userId, option_index: index })
+      } else {
+        if (myVotes.length >= maxChoices) {
+          alert(`You can only select up to ${maxChoices} options.`)
+          setLoading(false)
+          return
+        }
+        await supabase
+          .from('poll_votes')
+          .insert({ poll_id: poll.id, user_id: userId, option_index: index })
+      }
+    }
+    router.refresh()
     setLoading(false)
   }
 
   return (
     <div className={`bg-white p-5 rounded-2xl shadow-sm border mb-4 transition-all ${!hasVoted ? 'border-blue-200 ring-1 ring-blue-50' : 'border-gray-100'}`}>
       
-      {/* Header: Link to Details if detailLink is provided */}
+      {/* Header */}
       <div className="mb-4">
         {detailLink ? (
           <Link href={detailLink} className="group">
@@ -48,14 +75,25 @@ export default function PollCard({ poll, userId, myVoteIndex, detailLink }: any)
         ) : (
           <h3 className="font-bold text-gray-900">{poll.question}</h3>
         )}
+        {poll.relevant_date && (
+           <p className="text-xs font-bold text-purple-600 mt-2">
+             📅 {new Date(poll.relevant_date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
+           </p>
+        )}
+        {maxChoices > 1 && (
+           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mt-1">
+             Select up to {maxChoices} options
+           </p>
+        )}
       </div>
 
       {/* Options */}
       <div className="space-y-3">
         {poll.options.map((opt: string, idx: number) => {
           const count = counts[idx]
-          const percent = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100)
-          const isSelected = myVoteIndex === idx
+          const uniqueVoters = new Set(poll.poll_votes?.map((v:any) => v.user_id)).size
+          const percent = uniqueVoters === 0 ? 0 : Math.round((count / uniqueVoters) * 100)
+          const isSelected = myVotes.includes(idx)
 
           return (
             <button
@@ -68,20 +106,20 @@ export default function PollCard({ poll, userId, myVoteIndex, detailLink }: any)
             >
               <div 
                 className="absolute top-0 left-0 bottom-0 bg-blue-100 transition-all duration-500" 
-                style={{ width: `${percent}%`, opacity: 0.5 }} 
+                style={{ width: `${Math.min(percent, 100)}%`, opacity: 0.5 }} 
               />
               
               <div className="relative flex justify-between items-center z-10">
                 <span className={`text-sm font-medium ${isSelected ? 'text-blue-700' : 'text-gray-700'}`}>
                   {opt}
                 </span>
-                <span className="text-xs text-gray-500 font-semibold">{percent}%</span>
+                <span className="text-xs text-gray-500 font-semibold">{count} ({percent}%)</span>
               </div>
             </button>
           )
         })}
       </div>
-      <p className="text-xs text-gray-400 mt-3 text-right">{totalVotes} votes</p>
+      <p className="text-xs text-gray-400 mt-3 text-right">{new Set(poll.poll_votes?.map((v:any)=>v.user_id)).size} people voted</p>
     </div>
   )
 }
