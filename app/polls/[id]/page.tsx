@@ -34,9 +34,13 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
   const myVotes = poll.poll_votes.filter((v: any) => v.user_id === user.id).map((v: any) => v.option_index)
   
   // Logic: Who hasn't voted?
+  const isFineExempt = (status: string | null | undefined) => {
+    const s = status?.toLowerCase()
+    return s === 'on-leave' || s === 'on leave' || s === 'retired'
+  }
   const votedUserIds = poll.poll_votes.map((v: any) => v.user_id)
-  const noVotePlayers = allPlayers.filter(p => p.status !== 'retired' && !votedUserIds.includes(p.id))
-  const missingPlayers = allPlayers.filter(p => p.status === 'active' && !votedUserIds.includes(p.id))
+  const noVotePlayers = allPlayers.filter(p => !isFineExempt(p.status) && !votedUserIds.includes(p.id))
+  const missingPlayers = allPlayers.filter(p => !isFineExempt(p.status) && !votedUserIds.includes(p.id))
 
   // --- LAZY PENALTY CALCULATION ---
   if (poll.answer_by && new Date(poll.answer_by) < new Date() && missingPlayers.length > 0) {
@@ -66,11 +70,11 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
   // ---------------------------------
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-10">
+    <main className="min-h-screen bg-gray-50 pb-32">
       <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/?tab=polls" className="p-2 -ml-2 hover:bg-gray-100 rounded-full">←</Link>
-          <h1 className="font-bold text-lg">Poll Details</h1>
+          <h1 className="font-bold text-lg text-black">Poll Details</h1>
         </div>
         {isAanvoerder && <DeleteButton id={poll.id} table="polls" redirectPath="/?tab=polls" />}
       </div>

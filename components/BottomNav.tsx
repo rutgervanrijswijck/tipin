@@ -1,11 +1,50 @@
 'use client'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { createClient } from '@/utils/supabase/client'
 
-export default function BottomNav({ notificationCount = 0 }: { notificationCount?: number }) {
+export default function BottomNav({ notificationCount }: { notificationCount?: number }) {
+  const pathname = usePathname()
   const searchParams = useSearchParams()
-  const tab = searchParams.get('tab')
-  const active = tab === 'polls' ? 'polls' : tab === 'team' ? 'team' : 'schedule'
+  const [unreadCount, setUnreadCount] = useState<number>(notificationCount ?? 0)
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (notificationCount !== undefined) {
+      setUnreadCount(notificationCount)
+      return
+    }
+
+    // Auto-fetch unread polls count when used outside Home page
+    const fetchPolls = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: polls } = await supabase
+        .from('polls')
+        .select('id, poll_votes(user_id)')
+        .limit(20)
+
+      if (polls) {
+        const count = polls.filter((p: any) => !p.poll_votes?.some((v: any) => v.user_id === user.id)).length
+        setUnreadCount(count)
+      }
+    }
+
+    fetchPolls()
+  }, [notificationCount, pathname])
+
+  if (pathname === '/login') return null
+
+  let active = 'schedule'
+  if (pathname.startsWith('/polls') || (pathname === '/' && searchParams.get('tab') === 'polls')) {
+    active = 'polls'
+  } else if (pathname.startsWith('/team') || (pathname === '/' && searchParams.get('tab') === 'team')) {
+    active = 'team'
+  } else if (pathname === '/' || pathname.startsWith('/events')) {
+    active = 'schedule'
+  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe pt-2 px-6 h-20 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.05)] z-50">
@@ -13,9 +52,9 @@ export default function BottomNav({ notificationCount = 0 }: { notificationCount
         
         {/* 1. Polls (Left) with Notification Bubble */}
         <Link href="/?tab=polls" className={`relative flex flex-col items-center gap-1 w-16 mb-2 transition-colors ${active === 'polls' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>
-          {notificationCount > 0 && (
+          {unreadCount > 0 && (
             <div className="absolute top-0 right-3 -mt-1 -mr-1 h-4 min-w-[16px] px-1 bg-red-500 rounded-full flex items-center justify-center border border-white">
-              <span className="text-[10px] text-white font-bold leading-none">{notificationCount}</span>
+              <span className="text-[10px] text-white font-bold leading-none">{unreadCount}</span>
             </div>
           )}
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={active === 'polls' ? 2.5 : 2} stroke="currentColor" className="w-6 h-6">

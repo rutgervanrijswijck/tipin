@@ -35,14 +35,16 @@ export default function CaptainPenaltyButtons({ userId, eventId, status, boeteTy
   }
 
   return (
-    <div className="flex gap-2 ml-auto shrink-0">
+    <div className="flex gap-1.5 ml-auto shrink-0 items-center">
       {status === 'in' ? (
          <>
-           <button disabled={loading} onClick={() => handlePenalty('Arrived late')} className="text-[10px] text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded hover:bg-red-100 transition">Late</button>
-           <button disabled={loading} onClick={() => handlePenalty('No-show')} className="text-[10px] text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded hover:bg-red-100 transition">No-show</button>
+           <button disabled={loading} onClick={() => handlePenalty('Arrived late')} className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded hover:bg-red-100 transition">Late</button>
+           <button disabled={loading} onClick={() => handlePenalty('No-show')} className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded hover:bg-red-100 transition">No-show</button>
          </>
+      ) : status === 'out' || status === 'maybe' ? (
+         <button disabled={loading} onClick={() => handlePenalty('Invalid reason')} className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded hover:bg-red-100 transition">Invalid Reason</button>
       ) : (
-         <button disabled={loading} onClick={() => handlePenalty('Invalid reason')} className="text-[10px] text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded hover:bg-red-100 transition">Invalid Reason</button>
+         <button disabled={loading} onClick={() => handlePenalty('Missed deadline')} className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded hover:bg-red-100 transition">Fine Deadline</button>
       )}
     </div>
   )
