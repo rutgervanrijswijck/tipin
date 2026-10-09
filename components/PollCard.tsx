@@ -4,14 +4,10 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-export default function PollCard({ poll, userId, myVotes = [], detailLink }: any) {
+export default function PollCard({ poll, userId, myVotes = [], counts = [], uniqueVoters = 0, detailLink }: any) {
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
   const router = useRouter()
-
-  const counts = poll.options.map((_: any, index: number) => 
-    poll.poll_votes ? poll.poll_votes.filter((v: any) => v.option_index === index).length : 0
-  )
 
   const hasVoted = myVotes && myVotes.length > 0
   const maxChoices = poll.max_choices || 1
@@ -90,8 +86,7 @@ export default function PollCard({ poll, userId, myVotes = [], detailLink }: any
       {/* Options */}
       <div className="space-y-3">
         {poll.options.map((opt: string, idx: number) => {
-          const count = counts[idx]
-          const uniqueVoters = new Set(poll.poll_votes?.map((v:any) => v.user_id)).size
+          const count = counts[idx] || 0
           const percent = uniqueVoters === 0 ? 0 : Math.round((count / uniqueVoters) * 100)
           const isSelected = myVotes.includes(idx)
 
@@ -119,7 +114,7 @@ export default function PollCard({ poll, userId, myVotes = [], detailLink }: any
           )
         })}
       </div>
-      <p className="text-xs text-gray-400 mt-3 text-right">{new Set(poll.poll_votes?.map((v:any)=>v.user_id)).size} people voted</p>
+      <p className="text-xs text-gray-400 mt-3 text-right">{uniqueVoters} people voted</p>
     </div>
   )
 }

@@ -135,7 +135,7 @@ export default function CalendarView({ events, polls, userId }: { events: any[],
 
     return (
       <div className="space-y-4">
-        {days.map((day) => {
+        {days.map((day: Date) => {
           const dayItems = allItems.filter(item => isSameDay(item.date, day))
           return (
             <div key={day.toString()} className={clsx("bg-white p-4 rounded-xl shadow-sm border", isToday(day) ? "border-blue-300 ring-1 ring-blue-50" : "border-gray-100")}>
