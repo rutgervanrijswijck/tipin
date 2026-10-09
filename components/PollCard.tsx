@@ -55,7 +55,7 @@ export default function PollCard({ poll, userId, myVotes = [], counts = [], uniq
       {/* Header */}
       <div className="mb-4">
         {detailLink ? (
-          <Link href={detailLink} className="group">
+          <Link href={detailLink} prefetch={false} className="group">
             <div className="flex justify-between items-start">
               <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                 {poll.question} <span className="text-gray-300 text-xs font-normal ml-1">›</span>

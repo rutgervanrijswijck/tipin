@@ -8,8 +8,10 @@ export default async function StatsPage() {
   const cookieStore = await cookies()
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies: { getAll() { return cookieStore.getAll() } } })
 
-  const { data: profiles } = await supabase.from('profiles').select('id, full_name').eq('status', 'active')
-  const { data: attendance } = await supabase.from('attendance').select('user_id, status, events(event_type)')
+  const [ { data: profiles }, { data: attendance } ] = await Promise.all([
+    supabase.from('profiles').select('id, full_name').eq('status', 'active'),
+    supabase.from('attendance').select('user_id, status, events(event_type)')
+  ])
 
   const stats = profiles?.map(p => {
     const userAttendance = attendance?.filter(a => a.user_id === p.id && a.events) || []
@@ -37,7 +39,7 @@ export default async function StatsPage() {
                    <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-sm font-bold text-blue-600 uppercase border border-blue-100">
                      {s.full_name?.charAt(0)}
                    </div>
-                   <Link href={`/team/player/${s.id}`} className="font-bold text-gray-900 hover:text-blue-600 transition">
+                   <Link href={`/team/player/${s.id}`} prefetch={false} className="font-bold text-gray-900 hover:text-blue-600 transition">
                      {s.full_name}
                    </Link>
                  </div>

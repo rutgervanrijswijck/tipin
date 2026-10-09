@@ -17,8 +17,10 @@ export default async function AdtTimerPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profiles } = await supabase.from('profiles').select('id, full_name').eq('status', 'active').order('full_name', { ascending: true })
-  const { data: adts } = await supabase.from('adts').select('*').order('recorded_at', { ascending: false })
+  const [ { data: profiles }, { data: adts } ] = await Promise.all([
+    supabase.from('profiles').select('id, full_name').eq('status', 'active').order('full_name', { ascending: true }),
+    supabase.from('adts').select('*').order('recorded_at', { ascending: false })
+  ])
 
   return (
     <main className="min-h-screen bg-gray-50 pb-10">

@@ -16,18 +16,20 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: currentUserProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  const [
+    { data: currentUserProfile },
+    { data: profile },
+    { data: attendanceData }
+  ] = await Promise.all([
+    supabase.from('profiles').select('role').eq('id', user.id).single(),
+    supabase.from('profiles').select('*').eq('id', id).single(),
+    supabase.from('attendance').select('status, event_id, events(event_type)').eq('user_id', id)
+  ])
+
   const isCaptain = currentUserProfile?.role === 'captain'
   const isMe = user.id === id
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', id).single()
   if (!profile) return <div className="p-4 text-center">Player not found</div>
-
-  // Attendance Stats
-  const { data: attendanceData } = await supabase
-    .from('attendance')
-    .select('status, event_id, events(event_type)')
-    .eq('user_id', id)
 
   const calcRate = (types: string[]) => {
     const relevant = attendanceData?.filter(a => a.events && types.includes((a.events as any).event_type as string)) || []

@@ -21,7 +21,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const [ { data: profile }, { data: event }, { data: allPlayers } ] = await Promise.all([
     supabase.from('profiles').select('role').eq('id', user.id).single(),
     supabase.from('events').select('*, attendance(*, profiles(*))').eq('id', id).single(),
-    supabase.from('profiles').select('*')
+    supabase.from('profiles').select('id, full_name')
   ])
 
   const isAanvoerder = profile?.role === 'captain'

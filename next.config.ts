@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  compress: true,
+  experimental: {
+    optimizePackageImports: ['date-fns', 'clsx'],
+  },
 };
 
 export default nextConfig;

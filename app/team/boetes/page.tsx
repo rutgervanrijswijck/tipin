@@ -17,16 +17,17 @@ export default async function BoetesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  const [ { data: profile }, { data: boetes }, { data: boeteTypes } ] = await Promise.all([
+    supabase.from('profiles').select('role').eq('id', user.id).single(),
+    supabase
+      .from('boetes')
+      .select('*, profiles(full_name), boete_types(name)')
+      .eq('status', 'unpaid')
+      .order('issued_at', { ascending: false }),
+    supabase.from('boete_types').select('*').order('name', { ascending: true })
+  ])
+
   const isCaptain = profile?.role === 'captain'
-
-  const { data: boetes } = await supabase
-    .from('boetes')
-    .select('*, profiles(full_name), boete_types(name)')
-    .eq('status', 'unpaid')
-    .order('issued_at', { ascending: false })
-
-  const { data: boeteTypes } = await supabase.from('boete_types').select('*').order('name', { ascending: true })
 
   return (
     <main className="min-h-screen bg-gray-50 pb-10">

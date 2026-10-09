@@ -148,21 +148,23 @@ export default function CalendarView({ events, polls, userId }: { events: any[],
               ) : (
                 <div className="space-y-2">
                   {dayItems.map((item, idx) => {
-                    let replyText = ''
-                    if (item.type === 'poll') {
-                      const votes = item.original.poll_votes?.filter((v:any) => v.user_id === userId)
-                      if (votes && votes.length > 0) {
-                        replyText = votes.map((v:any) => item.original.options[v.option_index]).join(', ')
-                      }
-                    } else {
-                      const attendance = item.original.attendance?.find((a:any) => a.user_id === userId)
-                      if (attendance) {
-                        replyText = attendance.status
+                    let replyText = item.replyText || ''
+                    if (!replyText) {
+                      if (item.type === 'poll') {
+                        const votes = item.original.poll_votes?.filter((v:any) => v.user_id === userId)
+                        if (votes && votes.length > 0 && item.original.options) {
+                          replyText = votes.map((v:any) => item.original.options[v.option_index]).join(', ')
+                        }
+                      } else {
+                        const attendance = item.original.attendance?.find((a:any) => a.user_id === userId)
+                        if (attendance) {
+                          replyText = attendance.status
+                        }
                       }
                     }
 
                     return (
-                      <Link key={idx} href={item.link} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg group transition">
+                      <Link key={idx} href={item.link} prefetch={false} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg group transition">
                         <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-xl shadow-sm border border-gray-100 shrink-0">
                           {item.type === 'match_home' || item.type === 'match_away' ? '⚔️' : item.type === 'training' ? '🏋️' : item.type === 'social' ? '🍻' : '📊'}
                         </div>

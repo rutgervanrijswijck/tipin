@@ -2,21 +2,24 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import CreatePollForm from '@/components/CreatePollForm'
+import dynamic from 'next/dynamic'
 import PollCard from '@/components/PollCard'
 import BottomNav from '@/components/BottomNav'
-import CalendarView from '@/components/CalendarView'
 import AttendanceToggle from '@/components/AttendanceToggle'
-import CreateEventForm from '@/components/CreateEventForm'
 
-// Add 'past' and 'view' to the searchParams type
-export default async function Home({ searchParams }: { searchParams: Promise<{ tab?: string, past?: string, view?: string }> }) {
-  const { tab, past, view } = await searchParams
+// Dynamic imports for code-splitting large or captain-only components
+const CalendarView = dynamic(() => import('@/components/CalendarView'))
+const CreateEventForm = dynamic(() => import('@/components/CreateEventForm'))
+const CreatePollForm = dynamic(() => import('@/components/CreatePollForm'))
+
+export default async function Home({ searchParams }: { searchParams: Promise<{ tab?: string, past?: string, future?: string, view?: string }> }) {
+  const { tab, past, future, view } = await searchParams
   const activeTab = tab === 'polls' ? 'polls' : tab === 'team' ? 'team' : 'schedule'
   const isCalendarView = view === 'calendar'
   
-  // Parse how many past items to show (default 0)
+  // Parse pagination limits
   const pastLimit = parseInt(past || '0', 10)
+  const futureLimit = parseInt(future || '15', 10)
 
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -28,32 +31,40 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // --- FETCH LOGIC (Parallelized for performance) ---
+  // --- FETCH LOGIC (Selective + Parallelized) ---
   const todayStr = new Date().toISOString()
 
-  const profilePromise = supabase.from('profiles').select('*').eq('id', user.id).single()
+  // 1. Fetch Profile (only required columns)
+  const profilePromise = supabase.from('profiles').select('role, full_name').eq('id', user.id).single()
   
-  const pollsPromise = supabase
-      .from('polls')
-      .select('*, poll_votes(user_id, option_index)')
-      .order('created_at', { ascending: false })
-      .limit(20)
+  // 2. Fetch Polls (only full payload when rendered on polls tab or calendar view)
+  const pollsPromise = (activeTab === 'polls' || isCalendarView)
+    ? supabase
+        .from('polls')
+        .select('id, question, relevant_date, options, max_choices, poll_votes(user_id, option_index)')
+        .order('created_at', { ascending: false })
+        .limit(20)
+    : supabase
+        .from('polls')
+        .select('id, poll_votes(user_id)')
+        .limit(20)
 
+  // 3. Fetch Events (only required columns, lean limits)
   let futuresPromise: any = Promise.resolve({ data: null })
   let pastsPromise: any = Promise.resolve({ data: null })
 
   if (activeTab === 'schedule') {
     futuresPromise = supabase
       .from('events')
-      .select('*, attendance(user_id, status, reason)') 
+      .select('id, title, event_type, start_time, reason_required_out, reason_required_maybe, attendance(user_id, status, reason)') 
       .gte('start_time', todayStr)
       .order('start_time', { ascending: true })
-      .limit(100)
+      .limit(isCalendarView ? 100 : futureLimit)
 
     if (pastLimit > 0) {
       pastsPromise = supabase
         .from('events')
-        .select('*, attendance(user_id, status, reason)') 
+        .select('id, title, event_type, start_time, reason_required_out, reason_required_maybe, attendance(user_id, status, reason)') 
         .lt('start_time', todayStr)
         .order('start_time', { ascending: false })
         .limit(pastLimit)
@@ -72,9 +83,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   let futureEvents = futures || []
   let pastEvents = (pasts || []).reverse()
 
-  // Calculate the notification count (This now works on ALL tabs)
+  // Calculate the notification count (works efficiently across all tabs)
   const unansweredPollsCount = polls.filter((poll: any) => {
-    const hasVoted = poll.poll_votes.some((v: any) => v.user_id === user.id)
+    const hasVoted = poll.poll_votes?.some((v: any) => v.user_id === user.id)
     return !hasVoted
   }).length
 
@@ -84,13 +95,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     maybe: attendance.filter(a => a.status === 'maybe').length,
   })
 
-  // Reusable Event Card Component to keep code clean
+  // Reusable Event Card Component with prefetch={false} to stop network congestion
   const EventCard = ({ event, opacity = 1 }: { event: any, opacity?: number }) => {
     const counts = getCounts(event.attendance || [])
     const myStatus = event.attendance.find((a: any) => a.user_id === user.id)?.status
     
     return (
-      <Link href={`/events/${event.id}`} className="block group">
+      <Link href={`/events/${event.id}`} prefetch={false} className="block group">
         <div className={`bg-white p-3 rounded-r-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white group-hover:border-blue-200 transition-all duration-300 relative overflow-hidden pl-7`} style={{ opacity }}>
           
           <div className={`w-2 h-full absolute left-0 top-0 
@@ -141,22 +152,24 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     )
   }
 
-  // --- Optimization: Strip Data for CalendarView ---
-  const calendarEvents = [...pastEvents, ...futureEvents].map((e: any) => ({
+  // --- Optimization: Strip Data for CalendarView (Only when calendar view is open) ---
+  const calendarEvents = isCalendarView ? [...pastEvents, ...futureEvents].map((e: any) => ({
     id: e.id,
     start_time: e.start_time,
     event_type: e.event_type,
     title: e.title,
-    attendance: e.attendance ? e.attendance.filter((a: any) => a.user_id === user.id) : []
-  }))
+    replyText: e.attendance?.find((a: any) => a.user_id === user.id)?.status || null
+  })) : []
 
-  const calendarPolls = polls.filter((p: any) => p.relevant_date).map((p: any) => ({
-    id: p.id,
-    relevant_date: p.relevant_date,
-    question: p.question,
-    options: p.options,
-    poll_votes: p.poll_votes ? p.poll_votes.filter((v: any) => v.user_id === user.id) : []
-  }))
+  const calendarPolls = isCalendarView ? polls.filter((p: any) => p.relevant_date).map((p: any) => {
+    const myVote = p.poll_votes?.find((v: any) => v.user_id === user.id)
+    return {
+      id: p.id,
+      relevant_date: p.relevant_date,
+      question: p.question,
+      replyText: myVote && p.options ? p.options[myVote.option_index] : null
+    }
+  }) : []
 
   return (
     <main className="min-h-screen bg-[#F2F4F7] pb-32">
@@ -170,7 +183,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <Link href={`/team/player/${user.id}`} className="text-gray-500 font-medium text-sm hover:text-blue-600 transition">
+            <Link href={`/team/player/${user.id}`} prefetch={false} className="text-gray-500 font-medium text-sm hover:text-blue-600 transition">
               {profile?.full_name?.split(' ')[0]}
             </Link>
             <form action="/auth/signout" method="post">
@@ -191,8 +204,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
           <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* View Toggle */}
             <div className="flex bg-gray-200 p-1 rounded-lg w-fit mx-auto mb-4">
-              <Link href={`/?tab=schedule&view=list`} scroll={false} className={`px-4 py-1 text-sm rounded-md font-semibold transition-all ${!isCalendarView ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>List</Link>
-              <Link href={`/?tab=schedule&view=calendar`} scroll={false} className={`px-4 py-1 text-sm rounded-md font-semibold transition-all ${isCalendarView ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>Calendar</Link>
+              <Link href={`/?tab=schedule&view=list`} scroll={false} prefetch={false} className={`px-4 py-1 text-sm rounded-md font-semibold transition-all ${!isCalendarView ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>List</Link>
+              <Link href={`/?tab=schedule&view=calendar`} scroll={false} prefetch={false} className={`px-4 py-1 text-sm rounded-md font-semibold transition-all ${isCalendarView ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>Calendar</Link>
             </div>
 
             {isCalendarView ? (
@@ -204,8 +217,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                 {/* 1. LOAD EARLIER BUTTON */}
                 <div className="flex justify-center mb-4">
                    <Link 
-                     href={`/?past=${pastLimit + 10}`} 
-                     scroll={false} // Prevents jumping to top of page
+                     href={`/?past=${pastLimit + 10}${futureLimit !== 15 ? `&future=${futureLimit}` : ''}`} 
+                     scroll={false}
+                     prefetch={false}
                      className="text-xs font-semibold text-gray-500 bg-gray-200 px-4 py-2 rounded-full hover:bg-gray-300 transition"
                    >
                      {pastLimit === 0 ? 'Load earlier events' : 'Load 10 more previous events'}
@@ -225,6 +239,20 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                 {futureEvents.map((event: any) => (
                   <EventCard key={event.id} event={event} />
                 ))}
+
+                {/* 4. LOAD MORE FUTURE EVENTS BUTTON (Only if there could be more) */}
+                {futureEvents.length >= futureLimit && (
+                  <div className="flex justify-center pt-2 pb-4">
+                     <Link 
+                       href={`/?future=${futureLimit + 15}${pastLimit > 0 ? `&past=${pastLimit}` : ''}`} 
+                       scroll={false}
+                       prefetch={false}
+                       className="text-xs font-semibold text-gray-500 bg-gray-200 px-4 py-2 rounded-full hover:bg-gray-300 transition"
+                     >
+                       Load 15 more upcoming events
+                     </Link>
+                  </div>
+                )}
               </>
             )}
           </div>
