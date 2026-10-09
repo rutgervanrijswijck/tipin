@@ -103,7 +103,7 @@ export default function BoeteManager({ initialBoetes, boeteTypes, isCaptain }: a
           {Object.entries(groupedBoetes).map(([name, data]: any) => (
             <div key={name} className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100">
               <div className="flex justify-between items-center border-b pb-2 mb-3">
-                <h3 className="font-bold text-gray-900 text-lg">{name}</h3>
+                <h3 className="font-bold text-black text-lg">{name}</h3>
                 <span className="text-xl font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
                   €{data.total.toFixed(2)}
                 </span>

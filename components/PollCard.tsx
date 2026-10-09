@@ -1,51 +1,146 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function PollCard({ poll, userId, myVotes = [], counts = [], uniqueVoters = 0, detailLink }: any) {
   const [loading, setLoading] = useState(false)
+  const [selectedVotes, setSelectedVotes] = useState<number[]>(myVotes)
+  const [voteCounts, setVoteCounts] = useState<number[]>(counts)
+  const [totalVoters, setTotalVoters] = useState<number>(uniqueVoters)
+
   const supabase = createClient()
   const router = useRouter()
 
-  const hasVoted = myVotes && myVotes.length > 0
+  useEffect(() => {
+    setSelectedVotes(myVotes || [])
+    setVoteCounts(counts || [])
+    setTotalVoters(uniqueVoters || 0)
+  }, [myVotes, counts, uniqueVoters])
+
+  const hasVoted = selectedVotes && selectedVotes.length > 0
   const maxChoices = poll.max_choices || 1
 
   const handleVote = async (index: number) => {
+    if (loading) return
     setLoading(true)
-    const isSelected = myVotes.includes(index)
+
+    const isSelected = selectedVotes.includes(index)
+
+    // Save previous state for rollback on error
+    const prevVotes = [...selectedVotes]
+    const prevCounts = [...voteCounts]
+    const prevTotal = totalVoters
 
     if (isSelected) {
-      await supabase
+      // 1. UNVOTE: Remove vote optimistically
+      const nextVotes = selectedVotes.filter(v => v !== index)
+      setSelectedVotes(nextVotes)
+
+      const nextCounts = [...voteCounts]
+      nextCounts[index] = Math.max(0, (nextCounts[index] || 1) - 1)
+      setVoteCounts(nextCounts)
+
+      if (nextVotes.length === 0) {
+        setTotalVoters(Math.max(0, totalVoters - 1))
+      }
+
+      // Execute delete in Supabase
+      let deleteQuery = supabase
         .from('poll_votes')
         .delete()
         .eq('poll_id', poll.id)
         .eq('user_id', userId)
-        .eq('option_index', index)
+
+      // If multiple choices, target the specific option
+      if (maxChoices > 1) {
+        deleteQuery = deleteQuery.eq('option_index', index)
+      }
+
+      const { error } = await deleteQuery
+
+      if (error) {
+        console.error("Failed to unvote:", error)
+        alert("Failed to unvote: " + error.message)
+        setSelectedVotes(prevVotes)
+        setVoteCounts(prevCounts)
+        setTotalVoters(prevTotal)
+      } else {
+        router.refresh()
+      }
     } else {
+      // 2. VOTE: Add or switch vote optimistically
       if (maxChoices === 1) {
+        // Single choice: decrement previous vote count if any
+        const nextCounts = [...voteCounts]
+        if (selectedVotes.length > 0) {
+          selectedVotes.forEach(v => {
+            nextCounts[v] = Math.max(0, (nextCounts[v] || 1) - 1)
+          })
+        }
+        nextCounts[index] = (nextCounts[index] || 0) + 1
+        setVoteCounts(nextCounts)
+        setSelectedVotes([index])
+        if (selectedVotes.length === 0) {
+          setTotalVoters(totalVoters + 1)
+        }
+
+        // Delete any existing vote, then insert
         await supabase
           .from('poll_votes')
           .delete()
           .eq('poll_id', poll.id)
           .eq('user_id', userId)
-        
-        await supabase
+
+        const { error } = await supabase
           .from('poll_votes')
           .insert({ poll_id: poll.id, user_id: userId, option_index: index })
+
+        if (error) {
+          console.error("Failed to vote:", error)
+          alert("Failed to vote: " + error.message)
+          setSelectedVotes(prevVotes)
+          setVoteCounts(prevCounts)
+          setTotalVoters(prevTotal)
+        } else {
+          router.refresh()
+        }
       } else {
-        if (myVotes.length >= maxChoices) {
+        // Multiple choices: check limit
+        if (selectedVotes.length >= maxChoices) {
           alert(`You can only select up to ${maxChoices} options.`)
           setLoading(false)
           return
         }
-        await supabase
+
+        const nextVotes = [...selectedVotes, index]
+        setSelectedVotes(nextVotes)
+
+        const nextCounts = [...voteCounts]
+        nextCounts[index] = (nextCounts[index] || 0) + 1
+        setVoteCounts(nextCounts)
+
+        if (selectedVotes.length === 0) {
+          setTotalVoters(totalVoters + 1)
+        }
+
+        const { error } = await supabase
           .from('poll_votes')
           .insert({ poll_id: poll.id, user_id: userId, option_index: index })
+
+        if (error) {
+          console.error("Failed to vote:", error)
+          alert("Failed to vote: " + error.message)
+          setSelectedVotes(prevVotes)
+          setVoteCounts(prevCounts)
+          setTotalVoters(prevTotal)
+        } else {
+          router.refresh()
+        }
       }
     }
-    router.refresh()
+
     setLoading(false)
   }
 
@@ -86,9 +181,9 @@ export default function PollCard({ poll, userId, myVotes = [], counts = [], uniq
       {/* Options */}
       <div className="space-y-3">
         {poll.options.map((opt: string, idx: number) => {
-          const count = counts[idx] || 0
-          const percent = uniqueVoters === 0 ? 0 : Math.round((count / uniqueVoters) * 100)
-          const isSelected = myVotes.includes(idx)
+          const count = voteCounts[idx] || 0
+          const percent = totalVoters === 0 ? 0 : Math.round((count / totalVoters) * 100)
+          const isSelected = selectedVotes.includes(idx)
 
           return (
             <button
@@ -114,7 +209,7 @@ export default function PollCard({ poll, userId, myVotes = [], counts = [], uniq
           )
         })}
       </div>
-      <p className="text-xs text-gray-400 mt-3 text-right">{uniqueVoters} people voted</p>
+      <p className="text-xs text-gray-400 mt-3 text-right">{totalVoters} people voted</p>
     </div>
   )
 }

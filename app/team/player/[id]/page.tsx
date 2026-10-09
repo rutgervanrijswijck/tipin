@@ -58,7 +58,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
     <main className="min-h-screen bg-gray-50 pb-10">
       <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center gap-3">
         <Link href="/?tab=team" className="p-2 -ml-2 hover:bg-gray-100 rounded-full">←</Link>
-        <h1 className="font-bold text-lg">Player Profile</h1>
+        <h1 className="font-bold text-lg text-black">Player Profile</h1>
       </div>
 
       <div className="max-w-md mx-auto p-4 space-y-6">

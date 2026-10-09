@@ -115,7 +115,7 @@ export default function TeamHub({ profiles, currentUserRole, currentUserId }: { 
       {onLeaveProfiles.length > 0 && (
         <>
           <div className="flex justify-between items-end mt-8 mb-2">
-            <h2 className="text-lg font-bold text-gray-700">On Leave</h2>
+            <h2 className="text-lg font-bold text-black">On Leave</h2>
             <span className="text-sm font-semibold text-gray-500">{onLeaveProfiles.length} players</span>
           </div>
           <div className="space-y-3 opacity-80">
@@ -127,7 +127,7 @@ export default function TeamHub({ profiles, currentUserRole, currentUserId }: { 
       {retiredProfiles.length > 0 && (
         <>
           <div className="flex justify-between items-end mt-8 mb-2">
-            <h2 className="text-lg font-bold text-gray-500">Retired Hall of Fame</h2>
+            <h2 className="text-lg font-bold text-black">Retired Hall of Fame</h2>
             <span className="text-sm font-semibold text-gray-400">{retiredProfiles.length} legends</span>
           </div>
           <div className="space-y-3 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
