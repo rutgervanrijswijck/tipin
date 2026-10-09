@@ -22,7 +22,7 @@ export default async function StatsPage() {
   }).sort((a, b) => b.rate - a.rate) || []
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-10">
+    <main className="min-h-screen bg-gray-50 pb-32">
       <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center gap-3 shadow-sm">
         <Link href="/?tab=team" className="p-2 -ml-2 text-gray-900 hover:bg-gray-100 rounded-full transition">←</Link>
         <h1 className="font-bold text-lg text-black">📊 Attendance Leaderboard</h1>

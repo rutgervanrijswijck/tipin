@@ -90,8 +90,8 @@ export default function CreateEventForm({ userId }: { userId: string }) {
     return (
       <button 
         onClick={() => setIsOpen(true)}
-        className="w-full mb-6 py-3 bg-gray-900 text-white rounded-xl font-semibold shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
-        <span>+</span> Nieuw Event
+        className="w-full mb-3 py-2 bg-gray-900 text-white rounded-lg text-sm font-semibold shadow-sm hover:bg-gray-800 transition-colors flex items-center justify-center gap-1.5">
+        <span className="text-base leading-none font-bold">+</span> Nieuw Event
       </button>
     )
   }

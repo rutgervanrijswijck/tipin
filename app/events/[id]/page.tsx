@@ -138,7 +138,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   )
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-10">
+    <main className="min-h-screen bg-gray-50 pb-32">
       {/* Header */}
       <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3 overflow-hidden">

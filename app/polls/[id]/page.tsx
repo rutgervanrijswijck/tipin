@@ -66,7 +66,7 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
   // ---------------------------------
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-10">
+    <main className="min-h-screen bg-gray-50 pb-32">
       <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/?tab=polls" className="p-2 -ml-2 hover:bg-gray-100 rounded-full">←</Link>
