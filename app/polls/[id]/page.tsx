@@ -34,9 +34,13 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
   const myVotes = poll.poll_votes.filter((v: any) => v.user_id === user.id).map((v: any) => v.option_index)
   
   // Logic: Who hasn't voted?
+  const isFineExempt = (status: string | null | undefined) => {
+    const s = status?.toLowerCase()
+    return s === 'on-leave' || s === 'on leave' || s === 'retired'
+  }
   const votedUserIds = poll.poll_votes.map((v: any) => v.user_id)
-  const noVotePlayers = allPlayers.filter(p => p.status !== 'retired' && !votedUserIds.includes(p.id))
-  const missingPlayers = allPlayers.filter(p => p.status === 'active' && !votedUserIds.includes(p.id))
+  const noVotePlayers = allPlayers.filter(p => !isFineExempt(p.status) && !votedUserIds.includes(p.id))
+  const missingPlayers = allPlayers.filter(p => !isFineExempt(p.status) && !votedUserIds.includes(p.id))
 
   // --- LAZY PENALTY CALCULATION ---
   if (poll.answer_by && new Date(poll.answer_by) < new Date() && missingPlayers.length > 0) {

@@ -34,7 +34,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const todayStr = new Date().toISOString()
 
   // 1. Fetch Profile (only required columns)
-  const profilePromise = supabase.from('profiles').select('role, full_name').eq('id', user.id).single()
+  const profilePromise = supabase.from('profiles').select('role, full_name, avatar_url').eq('id', user.id).single()
   
   // 2. Fetch Polls (only full payload when rendered on polls tab or calendar view)
   const pollsPromise = (activeTab === 'polls' || isCalendarView)
@@ -222,16 +222,22 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <Link href={`/team/player/${user.id}`} prefetch={false} className="text-gray-500 font-medium text-sm hover:text-blue-600 transition">
-              {profile?.full_name?.split(' ')[0]}
+            <Link 
+              href={`/team/player/${user.id}`} 
+              prefetch={false} 
+              className="group flex items-center gap-2.5 transition"
+            >
+              <span className="text-gray-700 font-bold text-sm group-hover:text-blue-600 transition">
+                {profile?.full_name?.split(' ')[0]}
+              </span>
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm ring-1 ring-gray-200 group-hover:ring-blue-500 transition">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt={profile.full_name || 'Profile'} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{profile?.full_name?.charAt(0) || '👤'}</span>
+                )}
+              </div>
             </Link>
-            <form action="/auth/signout" method="post">
-              <button className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-                </svg>
-              </button>
-            </form>
           </div>
         </div>
       </div>

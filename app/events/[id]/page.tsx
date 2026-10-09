@@ -46,8 +46,15 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const maybePlayers = event.attendance.filter((a: any) => a.status === 'maybe')
   
   const votedIds = event.attendance.map((a: any) => a.user_id)
-  const noVotePlayers = allPlayers.filter(p => !votedIds.includes(p.id))
-  const missingActivePlayers = allPlayers.filter(p => p.status === 'active' && !votedIds.includes(p.id))
+  
+  // Players with status 'on-leave' or 'retired' should not receive automatic fines
+  const isFineExempt = (status: string | null | undefined) => {
+    const s = status?.toLowerCase()
+    return s === 'on-leave' || s === 'on leave' || s === 'retired'
+  }
+
+  const noVotePlayers = allPlayers.filter(p => !isFineExempt(p.status) && !votedIds.includes(p.id))
+  const missingActivePlayers = allPlayers.filter(p => !isFineExempt(p.status) && !votedIds.includes(p.id))
 
   // Deadline logic
   const isPastDeadline = Boolean(event.answer_by && new Date(event.answer_by) < new Date())

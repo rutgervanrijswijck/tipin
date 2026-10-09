@@ -9,7 +9,7 @@ export default async function StatsPage() {
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies: { getAll() { return cookieStore.getAll() } } })
 
   const [ { data: profiles }, { data: attendance } ] = await Promise.all([
-    supabase.from('profiles').select('id, full_name').eq('status', 'active'),
+    supabase.from('profiles').select('id, full_name, avatar_url, status').in('status', ['active', 'trainingslid']),
     supabase.from('attendance').select('user_id, status, events(event_type)')
   ])
 
@@ -36,8 +36,12 @@ export default async function StatsPage() {
                    {idx + 1}
                  </span>
                  <div className="flex items-center gap-3">
-                   <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-sm font-bold text-blue-600 uppercase border border-blue-100">
-                     {s.full_name?.charAt(0)}
+                   <div className="h-10 w-10 rounded-full bg-blue-50 overflow-hidden flex items-center justify-center text-sm font-bold text-blue-600 uppercase border border-blue-100">
+                     {s.avatar_url ? (
+                       <img src={s.avatar_url} alt={s.full_name} className="w-full h-full object-cover" />
+                     ) : (
+                       s.full_name?.charAt(0)
+                     )}
                    </div>
                    <Link href={`/team/player/${s.id}`} prefetch={false} className="font-bold text-gray-900 hover:text-blue-600 transition">
                      {s.full_name}

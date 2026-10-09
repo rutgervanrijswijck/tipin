@@ -18,7 +18,7 @@ export default async function AdtTimerPage() {
   if (!user) redirect('/login')
 
   const [ { data: profiles }, { data: adts } ] = await Promise.all([
-    supabase.from('profiles').select('id, full_name').eq('status', 'active').order('full_name', { ascending: true }),
+    supabase.from('profiles').select('id, full_name').in('status', ['active', 'trainingslid']).order('full_name', { ascending: true }),
     supabase.from('adts').select('*').order('recorded_at', { ascending: false })
   ])
 
