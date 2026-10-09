@@ -15,8 +15,10 @@ export default async function RosterPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-  const { data: teamProfiles } = await supabase.from('profiles').select('*').order('full_name', { ascending: true })
+  const [ { data: profile }, { data: teamProfiles } ] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase.from('profiles').select('*').order('full_name', { ascending: true })
+  ])
 
   return (
     <main className="min-h-screen bg-gray-50 pb-10">

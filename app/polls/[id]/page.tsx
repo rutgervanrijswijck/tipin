@@ -17,18 +17,17 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // 1. Fetch Poll + Votes
-  const { data: poll } = await supabase
-    .from('polls')
-    .select('*, poll_votes(user_id, option_index, profiles(id, full_name))')
-    .eq('id', id)
-    .single()
+  const [ { data: poll }, { data: profile }, { data: allPlayers } ] = await Promise.all([
+    supabase
+      .from('polls')
+      .select('*, poll_votes(user_id, option_index, profiles(id, full_name))')
+      .eq('id', id)
+      .single(),
+    supabase.from('profiles').select('role').eq('id', user.id).single(),
+    supabase.from('profiles').select('id, full_name, status')
+  ])
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   const isAanvoerder = profile?.role === 'captain'
-
-  // 2. Fetch ALL Profiles to calculate missing
-  const { data: allPlayers } = await supabase.from('profiles').select('id, full_name, status')
 
   if (!poll || !allPlayers) return <div className="p-6">Poll not found</div>
 
@@ -82,7 +81,9 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
         <PollCard 
            poll={poll} 
            userId={user.id} 
-           myVotes={myVotes} 
+           myVotes={myVotes}
+           counts={poll.options.map((_: any, index: number) => poll.poll_votes.filter((v: any) => v.option_index === index).length)}
+           uniqueVoters={new Set(poll.poll_votes.map((v:any) => v.user_id)).size}
            detailLink={null} 
         />
 

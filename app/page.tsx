@@ -28,50 +28,52 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-  const isAanvoerder = profile?.role === 'captain'
-
-  // --- FETCH LOGIC ---
-  let futureEvents: any[] = []
-  let pastEvents: any[] = []
-  // We initialize polls, but we will fetch them regardless of the tab now
-  
+  // --- FETCH LOGIC (Parallelized for performance) ---
   const todayStr = new Date().toISOString()
 
-  // 1. ALWAYS Fetch Polls (Required for the Notification Bubble)
-  const { data: pollsData } = await supabase
+  const profilePromise = supabase.from('profiles').select('*').eq('id', user.id).single()
+  
+  const pollsPromise = supabase
       .from('polls')
       .select('*, poll_votes(user_id, option_index)')
       .order('created_at', { ascending: false })
-  
-  const polls = pollsData || []
+      .limit(20)
 
-  // 2. Fetch Events (Only needed for Schedule tab)
+  let futuresPromise: any = Promise.resolve({ data: null })
+  let pastsPromise: any = Promise.resolve({ data: null })
+
   if (activeTab === 'schedule') {
-    // Fetch Future Events
-    const { data: futures } = await supabase
+    futuresPromise = supabase
       .from('events')
       .select('*, attendance(user_id, status, reason)') 
       .gte('start_time', todayStr)
       .order('start_time', { ascending: true })
-    futureEvents = futures || []
+      .limit(100)
 
-    // Fetch Past Events (Only if requested via 'Load Earlier')
-    const pastLimit = parseInt(past || '0', 10)
     if (pastLimit > 0) {
-      const { data: pasts } = await supabase
+      pastsPromise = supabase
         .from('events')
         .select('*, attendance(user_id, status, reason)') 
         .lt('start_time', todayStr)
         .order('start_time', { ascending: false })
         .limit(pastLimit)
-      
-      pastEvents = (pasts || []).reverse()
     }
   }
 
+  const [
+    { data: profile },
+    { data: pollsData },
+    { data: futures },
+    { data: pasts }
+  ] = await Promise.all([profilePromise, pollsPromise, futuresPromise, pastsPromise])
+
+  const isAanvoerder = profile?.role === 'captain'
+  const polls = pollsData || []
+  let futureEvents = futures || []
+  let pastEvents = (pasts || []).reverse()
+
   // Calculate the notification count (This now works on ALL tabs)
-  const unansweredPollsCount = polls.filter(poll => {
+  const unansweredPollsCount = polls.filter((poll: any) => {
     const hasVoted = poll.poll_votes.some((v: any) => v.user_id === user.id)
     return !hasVoted
   }).length
@@ -139,6 +141,23 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     )
   }
 
+  // --- Optimization: Strip Data for CalendarView ---
+  const calendarEvents = [...pastEvents, ...futureEvents].map((e: any) => ({
+    id: e.id,
+    start_time: e.start_time,
+    event_type: e.event_type,
+    title: e.title,
+    attendance: e.attendance ? e.attendance.filter((a: any) => a.user_id === user.id) : []
+  }))
+
+  const calendarPolls = polls.filter((p: any) => p.relevant_date).map((p: any) => ({
+    id: p.id,
+    relevant_date: p.relevant_date,
+    question: p.question,
+    options: p.options,
+    poll_votes: p.poll_votes ? p.poll_votes.filter((v: any) => v.user_id === user.id) : []
+  }))
+
   return (
     <main className="min-h-screen bg-[#F2F4F7] pb-32">
       
@@ -177,7 +196,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
             </div>
 
             {isCalendarView ? (
-              <CalendarView events={[...pastEvents, ...futureEvents]} polls={polls.filter(p => p.relevant_date)} userId={user.id} />
+              <CalendarView events={calendarEvents} polls={calendarPolls} userId={user.id} />
             ) : (
               <>
                 {isAanvoerder && <CreateEventForm userId={user.id} />}
@@ -194,7 +213,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                 </div>
 
                 {/* 2. PAST EVENTS (Slightly faded) */}
-                {pastEvents.map((event) => (
+                {pastEvents.map((event: any) => (
                    <EventCard key={event.id} event={event} opacity={0.6} />
                 ))}
 
@@ -203,7 +222,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
 
                 {/* 3. FUTURE EVENTS */}
                 {futureEvents.length === 0 && <div className="text-center text-gray-400 py-10">No upcoming events.</div>}
-                {futureEvents.map((event) => (
+                {futureEvents.map((event: any) => (
                   <EventCard key={event.id} event={event} />
                 ))}
               </>
@@ -216,14 +235,32 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {isAanvoerder && <CreatePollForm />}
 
-            {polls.map(poll => {
+            {polls.map((poll: any) => {
               const myVotes = poll.poll_votes.filter((v: any) => v.user_id === user.id).map((v: any) => v.option_index)
+              
+              // Precalculate totals to avoid sending all poll_votes to the client
+              const counts = poll.options.map((_: any, index: number) => 
+                poll.poll_votes ? poll.poll_votes.filter((v: any) => v.option_index === index).length : 0
+              )
+              const uniqueVoters = new Set(poll.poll_votes?.map((v:any) => v.user_id)).size
+
+              // Pass a stripped-down poll object
+              const strippedPoll = {
+                id: poll.id,
+                question: poll.question,
+                relevant_date: poll.relevant_date,
+                options: poll.options,
+                max_choices: poll.max_choices
+              }
+
               return (
                 <PollCard 
                   key={poll.id} 
-                  poll={poll} 
+                  poll={strippedPoll} 
                   userId={user.id} 
                   myVotes={myVotes}
+                  counts={counts}
+                  uniqueVoters={uniqueVoters}
                   detailLink={`/polls/${poll.id}`} 
                 />
               )

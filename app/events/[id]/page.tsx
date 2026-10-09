@@ -18,19 +18,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // 2. GET PROFILE (Now safe to use user.id)
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  const [ { data: profile }, { data: event }, { data: allPlayers } ] = await Promise.all([
+    supabase.from('profiles').select('role').eq('id', user.id).single(),
+    supabase.from('events').select('*, attendance(*, profiles(*))').eq('id', id).single(),
+    supabase.from('profiles').select('*')
+  ])
+
   const isAanvoerder = profile?.role === 'captain'
-
-  // 3. GET EVENT DATA
-  const { data: event } = await supabase
-    .from('events')
-    .select('*, attendance(*, profiles(*))') // Fetch event + attendance + user names
-    .eq('id', id)
-    .single()
-
-  // 4. GET ALL PLAYERS (To see who is missing)
-  const { data: allPlayers } = await supabase.from('profiles').select('*')
 
   if (!event || !allPlayers) return <div className="p-8 text-center text-gray-500">Event not found</div>
 
