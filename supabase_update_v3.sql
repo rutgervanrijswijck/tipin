@@ -150,3 +150,35 @@ BEGIN
   RETURN json_build_object('action', v_action);
 END;
 $$;
+
+
+-- ========================================================
+-- 3. EVENTS & POLLS: Foreign Key CASCADE & Deletion Permissions
+-- ========================================================
+
+-- Allow events to be deleted cleanly by cascading to dependent tables
+ALTER TABLE public.boetes DROP CONSTRAINT IF EXISTS boetes_event_id_fkey;
+ALTER TABLE public.boetes ADD CONSTRAINT boetes_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+ALTER TABLE public.attendance DROP CONSTRAINT IF EXISTS attendance_event_id_fkey;
+ALTER TABLE public.attendance ADD CONSTRAINT attendance_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+ALTER TABLE public.carpools DROP CONSTRAINT IF EXISTS carpools_event_id_fkey;
+ALTER TABLE public.carpools ADD CONSTRAINT carpools_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+
+-- Allow polls to be deleted cleanly by cascading to poll_votes
+ALTER TABLE public.poll_votes DROP CONSTRAINT IF EXISTS poll_votes_poll_id_fkey;
+ALTER TABLE public.poll_votes ADD CONSTRAINT poll_votes_poll_id_fkey FOREIGN KEY (poll_id) REFERENCES public.polls(id) ON DELETE CASCADE;
+
+-- Ensure Captains have RLS permission to delete events and polls
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Captains can delete events" ON public.events;
+CREATE POLICY "Captains can delete events" ON public.events
+FOR DELETE TO authenticated
+USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'captain'));
+
+ALTER TABLE public.polls ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Captains can delete polls" ON public.polls;
+CREATE POLICY "Captains can delete polls" ON public.polls
+FOR DELETE TO authenticated
+USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'captain'));

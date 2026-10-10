@@ -44,9 +44,17 @@ export default function CreateEventForm({ userId }: { userId: string }) {
       endDate.setHours(23, 59, 59)
 
       let currentDate = new Date(startDate)
+      let weekOffset = 0
 
       // Loop: Add 7 days until we pass the end date
       while (currentDate <= endDate) {
+        let currentAnswerBy = null
+        if (answerByStr) {
+          const shiftedAnswerBy = new Date(answerByStr)
+          shiftedAnswerBy.setDate(shiftedAnswerBy.getDate() + (weekOffset * 7))
+          currentAnswerBy = shiftedAnswerBy.toISOString()
+        }
+
         eventsToInsert.push({
           title,
           event_type: type,
@@ -54,18 +62,19 @@ export default function CreateEventForm({ userId }: { userId: string }) {
           location,
           reason_required_out: reqOut,
           reason_required_maybe: reqMaybe,
-          answer_by: answerBy,
+          answer_by: currentAnswerBy,
         })
 
         // Add 7 days
         currentDate.setDate(currentDate.getDate() + 7)
+        weekOffset += 1
       }
     } else {
       // Single Event
       eventsToInsert.push({
         title,
         event_type: type,
-        start_time: startTimeStr, // Supabase handles the raw input string well usually, but ISO is safer
+        start_time: new Date(startTimeStr).toISOString(),
         location,
         reason_required_out: reqOut,
         reason_required_maybe: reqMaybe,
@@ -112,6 +121,8 @@ export default function CreateEventForm({ userId }: { userId: string }) {
             <option value="match_home">Match (Home)</option>
             <option value="match_away">Match (Away)</option>
             <option value="social">Social</option>
+            <option value="eten">Eten</option>
+            <option value="eten_big_sunday">Eten (Big Sunday)</option>
           </select>
           <input name="location" placeholder="Location" className="p-2 text border rounded-lg flex-1" />
         </div>
