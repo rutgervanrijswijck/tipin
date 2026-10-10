@@ -5,6 +5,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import PollCard from '@/components/PollCard'
 import AttendanceToggle from '@/components/AttendanceToggle'
+import { checkAndSendDeadlineRemindersServer } from '@/app/actions/notifications'
 
 // Dynamic imports for code-splitting large or captain-only components
 const CalendarView = dynamic(() => import('@/components/CalendarView'))
@@ -89,6 +90,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const polls = pollsData || []
   let futureEvents = futures || []
   let pastEvents = (pasts || []).reverse()
+
+  // Background check for upcoming deadlines (fire & forget)
+  if (activeTab === 'schedule' && isAanvoerder) {
+    checkAndSendDeadlineRemindersServer().catch(() => {})
+  }
 
   const getCounts = (attendance: any[]) => ({
     in: attendance.filter(a => a.status === 'in').length,
@@ -449,6 +455,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                 <Link href="/team/boetes" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 hover:shadow-md transition">
                    <div className="w-14 h-14 bg-red-50 text-red-600 rounded-full flex items-center justify-center text-3xl">💸</div>
                    <span className="font-bold text-gray-800">Boetes</span>
+                </Link>
+                <Link href="/team/notifications" className="col-span-2 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition group">
+                   <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center text-3xl shrink-0 group-hover:scale-105 transition-transform">🔔</div>
+                      <div>
+                         <span className="font-bold text-gray-800 block text-base">Notifications</span>
+                         <span className="text-xs text-gray-500">Opt in or out of mobile notifications</span>
+                      </div>
+                   </div>
+                   <span className="text-gray-400 group-hover:text-purple-600 text-lg font-bold pr-2 transition-colors">→</span>
                 </Link>
              </div>
           </div>

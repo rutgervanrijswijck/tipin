@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import PollCard from '@/components/PollCard'
 import DeleteButton from '@/components/DeleteButton'
 import EditPollModal from '@/components/EditPollModal'
+import { dispatchPushNotificationServer } from '@/app/actions/notifications'
 
 export default async function PollDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -65,6 +66,13 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
         
       if (newFines.length > 0) {
         await supabase.from('boetes').insert(newFines)
+        dispatchPushNotificationServer({
+          type: 'fine_received',
+          targetUserIds: newFines.map(p => p.user_id),
+          title: '💸 You Have Received a Fine',
+          body: `Boete ontvangen: Missed deadline voor poll "${poll.question}" (€${boeteType.default_amount})`,
+          url: '/team/boetes'
+        }).catch(console.error)
       }
     }
   }

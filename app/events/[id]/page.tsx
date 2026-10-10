@@ -6,6 +6,7 @@ import AttendanceToggle from '@/components/AttendanceToggle'
 import DeleteButton from '@/components/DeleteButton'
 import EditEventModal from '@/components/EditEventModal'
 import CaptainPenaltyButtons from '@/components/CaptainPenaltyButtons'
+import { dispatchPushNotificationServer } from '@/app/actions/notifications'
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -80,6 +81,14 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             reason: `Missed deadline for event: ${event.title}`
           }))
         )
+
+        dispatchPushNotificationServer({
+          type: 'fine_received',
+          targetUserIds: playersToFine.map(p => p.id),
+          title: '💸 You Have Received a Fine',
+          body: `Boete ontvangen: Missed deadline voor ${event.title} (€${missedType.default_amount})`,
+          url: '/team/boetes'
+        }).catch(console.error)
       }
     }
   }

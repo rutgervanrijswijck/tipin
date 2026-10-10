@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { dispatchPushNotificationServer } from '@/app/actions/notifications'
 
 export default function CreateEventForm({ userId }: { userId: string }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -86,6 +87,15 @@ export default function CreateEventForm({ userId }: { userId: string }) {
     const { error } = await supabase.from('events').insert(eventsToInsert)
 
     if (!error) {
+      if (type === 'social') {
+        dispatchPushNotificationServer({
+          type: 'new_borrel',
+          title: '🍻 New Borrel Added',
+          body: `Nieuwe borrel: "${title}"`,
+          url: '/?tab=schedule&filter=borrels'
+        }).catch(console.error)
+      }
+
       setIsOpen(false)
       setIsRecurring(false) // Reset
       router.refresh()
