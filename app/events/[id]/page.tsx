@@ -144,13 +144,28 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     </div>
   )
 
+  const getEventEmoji = (type: string) => {
+    switch (type) {
+      case 'match_home':
+      case 'match_away': return '⚔️'
+      case 'training': return '🏋️'
+      case 'eten': return '🍔'
+      case 'eten_big_sunday': return '⬆️🍔'
+      case 'social': return '🍻'
+      default: return '📅'
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 pb-32">
       {/* Header */}
       <div className="bg-white border-b p-4 sticky top-0 z-10 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3 overflow-hidden">
           <Link href="/" prefetch={false} className="p-2 -ml-2 text-gray-900 hover:bg-gray-100 rounded-full flex-shrink-0">←</Link>
-          <h1 className="font-bold text-lg text-black truncate">{event.title}</h1>
+          <h1 className="font-bold text-lg text-black truncate flex items-center gap-1.5">
+            <span className="shrink-0">{getEventEmoji(event.event_type)}</span>
+            <span className="truncate">{event.title}</span>
+          </h1>
         </div>
         {/* Delete Button (Only for Aanvoerder) */}
         {isAanvoerder && <DeleteButton id={event.id} table="events" redirectPath="/" />}

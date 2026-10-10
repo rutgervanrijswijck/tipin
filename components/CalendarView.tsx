@@ -71,6 +71,8 @@ export default function CalendarView({ events, polls, userId }: { events: any[],
       case 'match_away': return 'bg-orange-500'
       case 'training': return 'bg-blue-500'
       case 'social': return 'bg-green-500'
+      case 'eten': return 'bg-amber-500'
+      case 'eten_big_sunday': return 'bg-rose-500'
       case 'poll': return 'bg-purple-500'
       default: return 'bg-gray-500'
     }
@@ -166,13 +168,35 @@ export default function CalendarView({ events, polls, userId }: { events: any[],
                     return (
                       <Link key={idx} href={item.link} prefetch={false} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg group transition">
                         <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-xl shadow-sm border border-gray-100 shrink-0">
-                          {item.type === 'match_home' || item.type === 'match_away' ? '⚔️' : item.type === 'training' ? '🏋️' : item.type === 'social' ? '🍻' : '📊'}
+                          {item.type === 'match_home' || item.type === 'match_away' 
+                            ? '⚔️' 
+                            : item.type === 'training' 
+                            ? '🏋️' 
+                            : item.type === 'eten'
+                            ? '🍔'
+                            : item.type === 'eten_big_sunday'
+                            ? '⬆️🍔'
+                            : item.type === 'social' 
+                            ? '🍻' 
+                            : '📊'}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-gray-500 uppercase tracking-wide shrink-0">{format(item.date, 'HH:mm')}</span>
                             <span className="text-[10px] bg-gray-100 text-gray-600 px-2 rounded font-bold shrink-0">
-                              {item.type === 'match_home' ? 'Match (Home)' : item.type === 'match_away' ? 'Match (Away)' : item.type === 'training' ? 'Training' : item.type === 'social' ? 'Social' : 'Poll'}
+                              {item.type === 'match_home' 
+                                ? 'Match (Home)' 
+                                : item.type === 'match_away' 
+                                ? 'Match (Away)' 
+                                : item.type === 'training' 
+                                ? 'Training' 
+                                : item.type === 'eten'
+                                ? 'Eten'
+                                : item.type === 'eten_big_sunday'
+                                ? 'Eten (Big Sunday)'
+                                : item.type === 'social' 
+                                ? 'Social' 
+                                : 'Poll'}
                             </span>
                             {replyText && (
                               <span className="text-[10px] font-bold px-2 rounded-full truncate bg-blue-100 text-blue-700">

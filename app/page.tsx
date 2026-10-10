@@ -109,7 +109,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     const counts = getCounts(event.attendance || [])
     const myStatus = event.attendance.find((a: any) => a.user_id === user.id)?.status
     const isUrgent = isUrgentUnanswered(event)
-    const emoji = event.event_type === 'match_home' || event.event_type === 'match_away' ? '⚔️' : event.event_type === 'training' ? '🏋️' : '🍻'
+    const emoji = event.event_type === 'match_home' || event.event_type === 'match_away' 
+      ? '⚔️' 
+      : event.event_type === 'training' 
+      ? '🏋️' 
+      : event.event_type === 'eten'
+      ? '🍔'
+      : event.event_type === 'eten_big_sunday'
+      ? '⬆️🍔'
+      : '🍻'
     
     return (
       <Link href={`/events/${event.id}`} prefetch={false} className="block group">
@@ -125,7 +133,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
           <div className={`w-1.5 h-full absolute left-0 top-0 
             ${isUrgent
               ? 'bg-amber-500'
-              : event.event_type === 'match_home' || event.event_type === 'match_away' ? 'bg-orange-500' : event.event_type === 'training' ? 'bg-blue-500' : 'bg-green-500'}`} 
+              : event.event_type === 'match_home' || event.event_type === 'match_away' 
+              ? 'bg-orange-500' 
+              : event.event_type === 'training' 
+              ? 'bg-blue-500' 
+              : event.event_type === 'eten'
+              ? 'bg-amber-500'
+              : event.event_type === 'eten_big_sunday'
+              ? 'bg-rose-500'
+              : 'bg-green-500'}`} 
           />
 
           {/* Urgent Deadline Notice Header */}

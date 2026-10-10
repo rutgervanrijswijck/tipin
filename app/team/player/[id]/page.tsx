@@ -40,10 +40,10 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
     return Math.round((present / relevant.length) * 100) + '%'
   }
 
-  const overallRate = calcRate(['training', 'match_home', 'match_away', 'social'])
+  const overallRate = calcRate(['training', 'match_home', 'match_away', 'social', 'eten', 'eten_big_sunday'])
   const trainingRate = calcRate(['training'])
   const matchRate = calcRate(['match_home', 'match_away'])
-  const socialRate = calcRate(['social'])
+  const socialRate = calcRate(['social', 'eten', 'eten_big_sunday'])
 
   async function updateName(formData: FormData) {
     'use server'
