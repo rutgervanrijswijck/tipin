@@ -274,26 +274,54 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
         {/* SCHEDULE TAB */}
         {activeTab === 'schedule' && (
           <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Top Bar: 'Load earlier events' button next to 'List / Calendar' view toggle and 'Borrels' filter */}
-            <div className="flex items-center justify-between gap-2 mb-1">
-              {!isCalendarView ? (
-                <Link 
-                  href={`/?past=${pastLimit + 10}${futureLimit !== 15 ? `&future=${futureLimit}` : ''}${isBorrelsFilter ? '&filter=borrels' : ''}`} 
-                  scroll={false}
-                  prefetch={false}
-                  className="text-xs font-semibold text-gray-600 bg-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-300 transition"
-                >
-                  {pastLimit === 0 ? 'Load earlier events' : `Load +10 earlier`}
-                </Link>
-              ) : <div />}
+            {/* Top Bar: 'Past events', centered 'List / Calendar' toggle ('🟰' / '🗓️'), and 'Borrels' filter */}
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex-1 flex justify-start">
+                {!isCalendarView ? (
+                  <Link 
+                    href={`/?past=${pastLimit + 10}${futureLimit !== 15 ? `&future=${futureLimit}` : ''}${isBorrelsFilter ? '&filter=borrels' : ''}`} 
+                    scroll={false}
+                    prefetch={false}
+                    className="h-10 px-3.5 rounded-xl text-xs font-semibold text-gray-700 bg-white border border-gray-200 shadow-sm hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center whitespace-nowrap"
+                  >
+                    {pastLimit === 0 ? 'Past events' : 'Past events (+10)'}
+                  </Link>
+                ) : <div />}
+              </div>
 
-              <div className="flex items-center gap-1.5 shrink-0">
-                <div className="flex bg-gray-200 p-0.5 rounded-lg shrink-0">
-                  <Link href={`/?tab=schedule&view=list${isBorrelsFilter ? '&filter=borrels' : ''}`} scroll={false} prefetch={false} className={`px-3 py-1 text-xs rounded-md font-semibold transition-all ${!isCalendarView ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}>List</Link>
-                  <Link href={`/?tab=schedule&view=calendar`} scroll={false} prefetch={false} className={`px-3 py-1 text-xs rounded-md font-semibold transition-all ${isCalendarView ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}>Calendar</Link>
+              <div className="shrink-0 flex justify-center">
+                <div className="flex bg-gray-200/90 p-1 rounded-xl h-10 border border-gray-300/70 shadow-inner items-center">
+                  <Link 
+                    href={`/?tab=schedule&view=list${isBorrelsFilter ? '&filter=borrels' : ''}`} 
+                    scroll={false} 
+                    prefetch={false} 
+                    aria-label="List view"
+                    className={`h-full px-3.5 rounded-lg flex items-center justify-center text-sm transition-all ${
+                      !isCalendarView 
+                        ? 'bg-white shadow-sm text-gray-900 font-bold scale-[1.02]' 
+                        : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    🟰
+                  </Link>
+                  <Link 
+                    href={`/?tab=schedule&view=calendar`} 
+                    scroll={false} 
+                    prefetch={false} 
+                    aria-label="Calendar view"
+                    className={`h-full px-3.5 rounded-lg flex items-center justify-center text-sm transition-all ${
+                      isCalendarView 
+                        ? 'bg-white shadow-sm text-gray-900 font-bold scale-[1.02]' 
+                        : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    🗓️
+                  </Link>
                 </div>
+              </div>
 
-                {!isCalendarView && (
+              <div className="flex-1 flex justify-end">
+                {!isCalendarView ? (
                   <Link 
                     href={
                       isBorrelsFilter 
@@ -302,15 +330,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                     }
                     scroll={false}
                     prefetch={false}
-                    className={`px-2.5 py-1 text-xs rounded-md font-semibold transition-all flex items-center gap-1 border ${
+                    className={`h-10 px-3.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap border shadow-sm active:scale-[0.98] ${
                       isBorrelsFilter 
-                        ? 'bg-amber-500 text-white border-amber-600 shadow-sm' 
-                        : 'bg-gray-200 text-gray-700 border-transparent hover:bg-gray-300'
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-amber-200' 
+                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     <span>🍻</span> Borrels
                   </Link>
-                )}
+                ) : <div />}
               </div>
             </div>
 
@@ -346,7 +374,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                        href={`/?future=${futureLimit + 15}${pastLimit > 0 ? `&past=${pastLimit}` : ''}${isBorrelsFilter ? '&filter=borrels' : ''}`} 
                        scroll={false}
                        prefetch={false}
-                       className="text-xs font-semibold text-gray-500 bg-gray-200 px-4 py-2 rounded-full hover:bg-gray-300 transition"
+                       className="h-10 px-5 text-xs font-semibold text-gray-700 bg-white border border-gray-200 shadow-sm rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center"
                      >
                        {isBorrelsFilter ? 'Load 15 more borrels' : 'Load 15 more upcoming events'}
                      </Link>
