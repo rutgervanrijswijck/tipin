@@ -262,7 +262,7 @@ export default function NotificationSettings({
               <span className="text-2xl shrink-0">📊</span>
               <div>
                 <span className="text-sm font-bold text-gray-900 block">
-                  New Poll added
+                  Nieuwe Poll toegevoegd
                 </span>
                 <span className="text-xs text-gray-500">
                   Wanneer er een nieuwe poll wordt aangemaakt door de aanvoerder
@@ -286,7 +286,7 @@ export default function NotificationSettings({
               <span className="text-2xl shrink-0">⏰</span>
               <div>
                 <span className="text-sm font-bold text-gray-900 block">
-                  'Add attendance'
+                  Invul reminder event
                 </span>
                 <span className="text-xs text-gray-500">
                   Herinnering als de aanwezigheidsdeadline voor een event binnen 3 dagen afloopt
@@ -310,7 +310,7 @@ export default function NotificationSettings({
               <span className="text-2xl shrink-0">🗳️</span>
               <div>
                 <span className="text-sm font-bold text-gray-900 block">
-                  'Fill in poll'
+                  Invul reminder poll
                 </span>
                 <span className="text-xs text-gray-500">
                   Herinnering als de stemdeadline van een poll binnen 3 dagen afloopt
@@ -334,7 +334,7 @@ export default function NotificationSettings({
               <span className="text-2xl shrink-0">💸</span>
               <div>
                 <span className="text-sm font-bold text-gray-900 block">
-                  'You have received a fine'
+                  Boete ontvangen
                 </span>
                 <span className="text-xs text-gray-500">
                   Directe melding wanneer je een boete ontvangt in de boetepot
@@ -358,7 +358,7 @@ export default function NotificationSettings({
               <span className="text-2xl shrink-0">🍻</span>
               <div>
                 <span className="text-sm font-bold text-gray-900 block">
-                  New Borrel added
+                  Nieuwe borrel toegevoegd
                 </span>
                 <span className="text-xs text-gray-500">
                   Wanneer er een nieuw sociaal event of borrel op de agenda verschijnt
@@ -382,7 +382,7 @@ export default function NotificationSettings({
               <span className="text-2xl shrink-0">⏱️</span>
               <div>
                 <span className="text-sm font-bold text-gray-900 block">
-                  New Adt-Timer time added
+                  Nieuwe Adt-Timer tijd toegevoegd
                 </span>
                 <span className="text-xs text-gray-500">
                   Melding met de getrokken tijd en spelersnaam zodra iemand een adtje trekt
