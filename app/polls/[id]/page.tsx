@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import PollCard from '@/components/PollCard'
 import DeleteButton from '@/components/DeleteButton'
+import EditPollModal from '@/components/EditPollModal'
 
 export default async function PollDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -20,11 +21,11 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
   const [ { data: poll }, { data: profile }, { data: allPlayers } ] = await Promise.all([
     supabase
       .from('polls')
-      .select('*, poll_votes(user_id, option_index, profiles(id, full_name))')
+      .select('*, poll_votes(user_id, option_index, profiles(id, full_name, avatar_url))')
       .eq('id', id)
       .single(),
     supabase.from('profiles').select('role').eq('id', user.id).single(),
-    supabase.from('profiles').select('id, full_name, status')
+    supabase.from('profiles').select('id, full_name, status, avatar_url')
   ])
 
   const isAanvoerder = profile?.role === 'captain'
@@ -76,7 +77,12 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
           <Link href="/?tab=polls" className="p-2 -ml-2 hover:bg-gray-100 rounded-full">←</Link>
           <h1 className="font-bold text-lg text-black">Poll Details</h1>
         </div>
-        {isAanvoerder && <DeleteButton id={poll.id} table="polls" redirectPath="/?tab=polls" />}
+        {isAanvoerder && (
+          <div className="flex items-center gap-2 shrink-0">
+            <EditPollModal poll={poll} />
+            <DeleteButton id={poll.id} table="polls" redirectPath="/?tab=polls" />
+          </div>
+        )}
       </div>
 
       <div className="max-w-md mx-auto p-6 space-y-6">
@@ -108,8 +114,15 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
                    </div>
                    <div className="flex flex-wrap gap-2">
                      {voters.map((v: any) => (
-                       <span key={v.user_id} className="text-xs border px-2 py-1 rounded-full bg-gray-50 text-gray-700">
-                         {v.profiles.full_name}
+                       <span key={v.user_id} className="inline-flex items-center gap-1.5 text-xs border border-gray-200 px-2.5 py-1 rounded-full bg-gray-50 text-gray-800">
+                         <span className="w-4 h-4 rounded-full bg-gray-200 overflow-hidden inline-flex items-center justify-center text-[9px] font-bold text-gray-600 shrink-0 border border-gray-300">
+                           {v.profiles?.avatar_url ? (
+                             <img src={v.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                           ) : (
+                             v.profiles?.full_name?.[0] || '?'
+                           )}
+                         </span>
+                         <span>{v.profiles?.full_name}</span>
                        </span>
                      ))}
                    </div>
@@ -125,8 +138,15 @@ export default async function PollDetailPage({ params }: { params: Promise<{ id:
                </div>
                <div className="flex flex-wrap gap-2">
                  {noVotePlayers.map((p) => (
-                   <span key={p.id} className="text-xs border border-red-100 px-2 py-1 rounded-full bg-white text-gray-500 italic">
-                     {p.full_name}
+                   <span key={p.id} className="inline-flex items-center gap-1.5 text-xs border border-red-200 px-2.5 py-1 rounded-full bg-white text-gray-600 italic">
+                     <span className="w-4 h-4 rounded-full bg-gray-200 overflow-hidden inline-flex items-center justify-center text-[9px] font-bold text-gray-500 shrink-0 border border-red-100">
+                       {p.avatar_url ? (
+                         <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
+                       ) : (
+                         p.full_name?.[0] || '?'
+                       )}
+                     </span>
+                     <span>{p.full_name}</span>
                    </span>
                  ))}
                </div>

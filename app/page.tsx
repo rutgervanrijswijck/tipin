@@ -11,10 +11,11 @@ const CalendarView = dynamic(() => import('@/components/CalendarView'))
 const CreateEventForm = dynamic(() => import('@/components/CreateEventForm'))
 const CreatePollForm = dynamic(() => import('@/components/CreatePollForm'))
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ tab?: string, past?: string, future?: string, view?: string }> }) {
-  const { tab, past, future, view } = await searchParams
+export default async function Home({ searchParams }: { searchParams: Promise<{ tab?: string, past?: string, future?: string, view?: string, filter?: string }> }) {
+  const { tab, past, future, view, filter } = await searchParams
   const activeTab = tab === 'polls' ? 'polls' : tab === 'team' ? 'team' : 'schedule'
   const isCalendarView = view === 'calendar'
+  const isBorrelsFilter = !isCalendarView && filter === 'borrels'
   
   // Parse pagination limits
   const pastLimit = parseInt(past || '0', 10)
@@ -50,20 +51,30 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   let pastsPromise: any = Promise.resolve({ data: null })
 
   if (activeTab === 'schedule') {
-    futuresPromise = supabase
+    let futuresQuery = supabase
       .from('events')
       .select('id, title, event_type, start_time, answer_by, reason_required_out, reason_required_maybe, attendance(user_id, status, reason)') 
       .gte('start_time', todayStr)
       .order('start_time', { ascending: true })
-      .limit(isCalendarView ? 100 : futureLimit)
+
+    if (isBorrelsFilter) {
+      futuresQuery = futuresQuery.eq('event_type', 'social')
+    }
+
+    futuresPromise = futuresQuery.limit(isCalendarView ? 100 : futureLimit)
 
     if (pastLimit > 0) {
-      pastsPromise = supabase
+      let pastsQuery = supabase
         .from('events')
         .select('id, title, event_type, start_time, answer_by, reason_required_out, reason_required_maybe, attendance(user_id, status, reason)') 
         .lt('start_time', todayStr)
         .order('start_time', { ascending: false })
-        .limit(pastLimit)
+
+      if (isBorrelsFilter) {
+        pastsQuery = pastsQuery.eq('event_type', 'social')
+      }
+
+      pastsPromise = pastsQuery.limit(pastLimit)
     }
   }
 
@@ -263,11 +274,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
         {/* SCHEDULE TAB */}
         {activeTab === 'schedule' && (
           <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Top Bar: 'Load earlier events' button next to 'List / Calendar' view toggle */}
+            {/* Top Bar: 'Load earlier events' button next to 'List / Calendar' view toggle and 'Borrels' filter */}
             <div className="flex items-center justify-between gap-2 mb-1">
               {!isCalendarView ? (
                 <Link 
-                  href={`/?past=${pastLimit + 10}${futureLimit !== 15 ? `&future=${futureLimit}` : ''}`} 
+                  href={`/?past=${pastLimit + 10}${futureLimit !== 15 ? `&future=${futureLimit}` : ''}${isBorrelsFilter ? '&filter=borrels' : ''}`} 
                   scroll={false}
                   prefetch={false}
                   className="text-xs font-semibold text-gray-600 bg-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-300 transition"
@@ -276,9 +287,30 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                 </Link>
               ) : <div />}
 
-              <div className="flex bg-gray-200 p-0.5 rounded-lg shrink-0">
-                <Link href={`/?tab=schedule&view=list`} scroll={false} prefetch={false} className={`px-3 py-1 text-xs rounded-md font-semibold transition-all ${!isCalendarView ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}>List</Link>
-                <Link href={`/?tab=schedule&view=calendar`} scroll={false} prefetch={false} className={`px-3 py-1 text-xs rounded-md font-semibold transition-all ${isCalendarView ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}>Calendar</Link>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex bg-gray-200 p-0.5 rounded-lg shrink-0">
+                  <Link href={`/?tab=schedule&view=list${isBorrelsFilter ? '&filter=borrels' : ''}`} scroll={false} prefetch={false} className={`px-3 py-1 text-xs rounded-md font-semibold transition-all ${!isCalendarView ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}>List</Link>
+                  <Link href={`/?tab=schedule&view=calendar`} scroll={false} prefetch={false} className={`px-3 py-1 text-xs rounded-md font-semibold transition-all ${isCalendarView ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}>Calendar</Link>
+                </div>
+
+                {!isCalendarView && (
+                  <Link 
+                    href={
+                      isBorrelsFilter 
+                        ? `/?tab=schedule&view=list${pastLimit > 0 ? `&past=${pastLimit}` : ''}${futureLimit !== 15 ? `&future=${futureLimit}` : ''}`
+                        : `/?tab=schedule&view=list&filter=borrels${pastLimit > 0 ? `&past=${pastLimit}` : ''}${futureLimit !== 15 ? `&future=${futureLimit}` : ''}`
+                    }
+                    scroll={false}
+                    prefetch={false}
+                    className={`px-2.5 py-1 text-xs rounded-md font-semibold transition-all flex items-center gap-1 border ${
+                      isBorrelsFilter 
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-sm' 
+                        : 'bg-gray-200 text-gray-700 border-transparent hover:bg-gray-300'
+                    }`}
+                  >
+                    <span>🍻</span> Borrels
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -297,7 +329,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                 {pastEvents.length > 0 && <div className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest my-3">Today</div>}
 
                 {/* 3. FUTURE EVENTS (Urgent unanswered events brought to the top!) */}
-                {sortedFutureEvents.length === 0 && <div className="text-center text-gray-400 py-10">No upcoming events.</div>}
+                {sortedFutureEvents.length === 0 && (
+                  <div className="text-center text-gray-400 py-10">
+                    {isBorrelsFilter ? 'No upcoming borrels.' : 'No upcoming events.'}
+                  </div>
+                )}
                 
                 {sortedFutureEvents.map((event: any) => (
                   <EventCard key={event.id} event={event} />
@@ -307,12 +343,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                 {futureEvents.length >= futureLimit && (
                   <div className="flex justify-center pt-2 pb-2">
                      <Link 
-                       href={`/?future=${futureLimit + 15}${pastLimit > 0 ? `&past=${pastLimit}` : ''}`} 
+                       href={`/?future=${futureLimit + 15}${pastLimit > 0 ? `&past=${pastLimit}` : ''}${isBorrelsFilter ? '&filter=borrels' : ''}`} 
                        scroll={false}
                        prefetch={false}
                        className="text-xs font-semibold text-gray-500 bg-gray-200 px-4 py-2 rounded-full hover:bg-gray-300 transition"
                      >
-                       Load 15 more upcoming events
+                       {isBorrelsFilter ? 'Load 15 more borrels' : 'Load 15 more upcoming events'}
                      </Link>
                   </div>
                 )}
