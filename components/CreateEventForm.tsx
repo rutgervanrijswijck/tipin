@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { dispatchPushNotificationServer } from '@/app/actions/notifications'
 
 export default function CreateEventForm({ userId }: { userId: string }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -86,6 +87,15 @@ export default function CreateEventForm({ userId }: { userId: string }) {
     const { error } = await supabase.from('events').insert(eventsToInsert)
 
     if (!error) {
+      if (type === 'social') {
+        dispatchPushNotificationServer({
+          type: 'new_borrel',
+          title: '🍻 New Borrel Added',
+          body: `Nieuwe borrel: "${title}"`,
+          url: '/?tab=schedule&filter=borrels'
+        }).catch(console.error)
+      }
+
       setIsOpen(false)
       setIsRecurring(false) // Reset
       router.refresh()
@@ -99,7 +109,7 @@ export default function CreateEventForm({ userId }: { userId: string }) {
     return (
       <button 
         onClick={() => setIsOpen(true)}
-        className="w-full mb-3 py-2 bg-gray-900 text-white rounded-lg text-sm font-semibold shadow-sm hover:bg-gray-800 transition-colors flex items-center justify-center gap-1.5">
+        className="w-full mb-3 h-10 bg-gray-900 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-gray-800 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5">
         <span className="text-base leading-none font-bold">+</span> Nieuw Event
       </button>
     )

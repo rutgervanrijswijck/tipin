@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { dispatchPushNotificationServer } from '@/app/actions/notifications'
 
 export default function AdtTimerManager({ profiles, initialAdts }: any) {
   const [mode, setMode] = useState<'view' | 'add_manual' | 'add_record'>('view')
@@ -55,6 +56,15 @@ export default function AdtTimerManager({ profiles, initialAdts }: any) {
     
     if (error) alert(error.message)
     else {
+      const playerName = profiles.find((p: any) => p.id === selectedUser)?.full_name || 'Een speler'
+      const timeFormatted = `${Number(timeInSeconds).toFixed(2)}s`
+      dispatchPushNotificationServer({
+        type: 'new_adt_timer',
+        title: '⏱️ New Adt-Timer Time',
+        body: `${playerName} heeft een adt getrokken in ${timeFormatted}! 🍻`,
+        url: '/team/adt-timer'
+      }).catch(console.error)
+
       alert("Adt recorded successfully! 🍻")
       setMode('view')
       setTime(0)

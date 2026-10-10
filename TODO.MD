@@ -10,14 +10,18 @@
 [ X] Clicking on your name on the top right of the header in the app also brings you to your player profile page.
 [ X] Polls and events can have an 'answer by' date, after which only captains can change attendance. If a player with status active does not manage to give their attendance in time, they will receive a monitairy penalty (boete), which can be seen by everyone on the Boete screen. Captains can change (future) boete amounts per type of boete in a boete settings screen, as well as delete issued boetes.
 [ X] When a captain clicks on an event and is on the event details screen, they can click on button(s) with red text on the right of every player. Next to present players there are two buttons, which say 'arrived late' and 'no-show'. Next to maybe and absent players, there is a button which says 'invalid reason'. When these buttons are clicked, corresponding boetes are added to the boete screen. (Each of the button type & event type combinations are different boete types.)
-[ ] New event type: Eten. Possible to create event called Eten. It also has the extra togglable feature: Big Sunday.
-[ ] Make the activities on the schedule screen more compact without showing less info.
-[ ] Changing the appearance of the activities which have to be filled in ASAP.
-[ ] Adding the possibility to add a small profile picture.
+[ X] New event type: Eten. Possible to create event called Eten. It also has the extra togglable feature: Big Sunday.
+[ X] Make the activities on the schedule screen more compact without showing less info.
+[ X] Changing the appearance of the activities which have to be filled in ASAP.
+[ X] Adding the possibility to add a small profile picture.
 [ ] Improving the login screen
+[ ] Editing events & polls after creation (captains only)
+[ ] Being able to see profile pictures at poll and event details screen next to player names.
+[ ] Adding a button on the right side of List/Calendar toggle on the schedule screen called 'Borrels' that lets you filter on only events of type Social (Only on list view)
+[ ] Adding the option to display the color of team outfit that has to be worn at a competition game (either red or green).
 
 ## Appearance
-[ ] There are some legibility issues with the arrows on the calendar screens, we should make them darker.
+[ X] There are some legibility issues with the arrows on the calendar screens, we should make them darker.
 
 ## Ideas & research
 [ ] Are there any ways we can improve performance of the app?

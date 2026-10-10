@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { dispatchPushNotificationServer } from '@/app/actions/notifications'
 
 export default function CreatePollForm() {
   const [isOpen, setIsOpen] = useState(false)
@@ -30,15 +31,22 @@ export default function CreatePollForm() {
     // Filter out empty options
     const validOptions = options.filter(o => o.trim() !== '')
 
-    const { error } = await supabase.from('polls').insert({
+    const { data: newPoll, error } = await supabase.from('polls').insert({
       question,
       options: validOptions,
       max_choices: maxChoices,
       relevant_date: relevantDate ? new Date(relevantDate).toISOString() : null,
       answer_by: answerBy ? new Date(answerBy).toISOString() : null
-    })
+    }).select('id').single()
 
     if (!error) {
+      dispatchPushNotificationServer({
+        type: 'new_poll',
+        title: '📊 New Poll Added',
+        body: `Nieuwe poll: "${question}"`,
+        url: newPoll?.id ? `/polls/${newPoll.id}` : '/?tab=polls'
+      }).catch(console.error)
+
       setIsOpen(false)
       setQuestion('')
       setOptions(['', ''])

@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import AttendanceToggle from '@/components/AttendanceToggle'
 import DeleteButton from '@/components/DeleteButton'
+import EditEventModal from '@/components/EditEventModal'
 import CaptainPenaltyButtons from '@/components/CaptainPenaltyButtons'
+import { dispatchPushNotificationServer } from '@/app/actions/notifications'
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -28,7 +30,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   ] = await Promise.all([
     supabase.from('profiles').select('role').eq('id', user.id).single(),
     supabase.from('events').select('*, attendance(*, profiles(*))').eq('id', id).single(),
-    supabase.from('profiles').select('id, full_name, status'),
+    supabase.from('profiles').select('id, full_name, status, avatar_url'),
     supabase.from('boete_types').select('id, name, default_amount'),
     supabase.from('boetes').select('id, user_id, boete_type_id, boete_types(name)').eq('event_id', id)
   ])
@@ -79,6 +81,14 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             reason: `Missed deadline for event: ${event.title}`
           }))
         )
+
+        dispatchPushNotificationServer({
+          type: 'fine_received',
+          targetUserIds: playersToFine.map(p => p.id),
+          title: '💸 You Have Received a Fine',
+          body: `Boete ontvangen: Missed deadline voor ${event.title} (€${missedType.default_amount})`,
+          url: '/team/boetes'
+        }).catch(console.error)
       }
     }
   }
@@ -101,8 +111,12 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
               <div key={p.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 shrink-0">
-                      {p.full_name?.[0]}
+                    <div className="h-8 w-8 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-xs font-bold text-gray-600 shrink-0 border border-gray-100">
+                      {p.avatar_url ? (
+                        <img src={p.avatar_url} alt={p.full_name} className="w-full h-full object-cover" />
+                      ) : (
+                        p.full_name?.[0] || '?'
+                      )}
                     </div>
                     <span className="text-sm font-semibold text-gray-900 truncate">{p.full_name}</span>
                   </div>
@@ -167,8 +181,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             <span className="truncate">{event.title}</span>
           </h1>
         </div>
-        {/* Delete Button (Only for Aanvoerder) */}
-        {isAanvoerder && <DeleteButton id={event.id} table="events" redirectPath="/" />}
+        {/* Captain Actions (Only for Aanvoerder) */}
+        {isAanvoerder && (
+          <div className="flex items-center gap-2 shrink-0">
+            <EditEventModal event={event} />
+            <DeleteButton id={event.id} table="events" redirectPath="/" />
+          </div>
+        )}
       </div>
 
       <div className="max-w-md mx-auto p-6">

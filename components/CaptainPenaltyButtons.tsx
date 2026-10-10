@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import { dispatchPushNotificationServer } from '@/app/actions/notifications'
 
 export default function CaptainPenaltyButtons({ userId, eventId, status, boeteTypesMap, eventTitle }: any) {
   const [loading, setLoading] = useState(false)
@@ -28,7 +29,17 @@ export default function CaptainPenaltyButtons({ userId, eventId, status, boeteTy
     })
 
     if (error) alert(error.message)
-    else alert(`Penalty "${typeName}" issued successfully!`)
+    else {
+      dispatchPushNotificationServer({
+        type: 'fine_received',
+        targetUserIds: [userId],
+        title: '💸 You Have Received a Fine',
+        body: `Boete ontvangen: ${typeName} voor ${eventTitle} (€${boeteType.default_amount})`,
+        url: '/team/boetes'
+      }).catch(console.error)
+
+      alert(`Penalty "${typeName}" issued successfully!`)
+    }
     
     setLoading(false)
     router.refresh()
