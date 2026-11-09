@@ -12,7 +12,8 @@ This is a development project for a mobile based webapp called TipIn (Next.js 16
 ## Architecture & Directory Layout
 - `app/`: Next.js App Router pages and API routes
   - `app/api/ping/`: Lightweight keep-alive health ping endpoint (used by cron-job.org to prevent Vercel and Supabase cold starts)
-  - `app/api/cron/check-deadlines/`: Cron endpoint to send push notifications for upcoming deadlines
+  - `app/api/cron/check-deadlines/`: Cron endpoint to send push reminders for upcoming deadlines and automatically process missed deadline fines
+  - `app/api/cron/process-fines/`: Cron endpoint dedicated to automatically calculating and issuing missed deadline fines
   - `app/events/[id]/`: Event details, player attendance, captain actions (late/no-show/invalid reason)
   - `app/polls/[id]/`: Polls & voting
   - `app/team/`: Team hub (Roster, Player Profiles `player/[id]`, Stats, Adt-timer, Boetes)
