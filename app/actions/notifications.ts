@@ -71,7 +71,6 @@ async function getSupabase() {
 
 // Helper to get admin Supabase client if service role key is set
 async function getDbClient() {
-  const supabase = await getSupabase()
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (serviceKey) {
     try {
@@ -79,7 +78,15 @@ async function getDbClient() {
       return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey)
     } catch {}
   }
-  return supabase
+  try {
+    return await getSupabase()
+  } catch {
+    const { createClient } = await import('@supabase/supabase-js')
+    return createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  }
 }
 
 /**
@@ -446,3 +453,152 @@ export async function checkAndSendDeadlineRemindersServer() {
     return { success: false, error: String(err) }
   }
 }
+
+/**
+ * Check past deadlines (events and polls) and automatically issue fines
+ * to active players who missed the deadline without responding/voting.
+ */
+export async function processMissedDeadlineFinesServer() {
+  try {
+    const dbClient = await getDbClient()
+    const now = new Date()
+    // Look back up to 30 days so we don't scan ancient history indefinitely
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+
+    // 1. Fetch "Missed deadline" boete type
+    const { data: missedType, error: typeErr } = await dbClient
+      .from('boete_types')
+      .select('id, default_amount')
+      .eq('name', 'Missed deadline')
+      .single()
+
+    if (typeErr || !missedType) {
+      console.warn('Could not find boete type "Missed deadline":', typeErr)
+      return { success: false, error: 'Missed deadline fine type not found' }
+    }
+
+    // 2. Fetch active players (excluding on-leave/retired)
+    const { data: players, error: playersErr } = await dbClient
+      .from('profiles')
+      .select('id, full_name, status')
+      .not('status', 'in', '("on-leave","on leave","retired")')
+
+    if (playersErr || !players || players.length === 0) {
+      return { success: true, eventFinesIssued: 0, pollFinesIssued: 0 }
+    }
+
+    let eventFinesIssued = 0
+    let pollFinesIssued = 0
+
+    // 3. Process Events with answer_by in the past (within last 30 days)
+    const { data: pastEvents } = await dbClient
+      .from('events')
+      .select('id, title, answer_by, attendance(user_id, status)')
+      .lt('answer_by', now.toISOString())
+      .gte('answer_by', thirtyDaysAgo.toISOString())
+
+    if (pastEvents && pastEvents.length > 0) {
+      const eventIds = pastEvents.map((e: any) => e.id)
+      const { data: existingEventFines } = await dbClient
+        .from('boetes')
+        .select('user_id, event_id')
+        .eq('boete_type_id', missedType.id)
+        .in('event_id', eventIds)
+
+      for (const ev of pastEvents) {
+        const answeredIds = (ev.attendance || [])
+          .filter((a: any) => a.status === 'in' || a.status === 'out' || a.status === 'maybe')
+          .map((a: any) => a.user_id)
+
+        const alreadyFinedUserIds = new Set(
+          (existingEventFines || [])
+            .filter((f: any) => f.event_id === ev.id)
+            .map((f: any) => f.user_id)
+        )
+
+        const playersToFine = players.filter(
+          p => !answeredIds.includes(p.id) && !alreadyFinedUserIds.has(p.id)
+        )
+
+        if (playersToFine.length > 0) {
+          const newFines = playersToFine.map(p => ({
+            user_id: p.id,
+            event_id: ev.id,
+            boete_type_id: missedType.id,
+            amount: missedType.default_amount,
+            reason: `Missed deadline for event: ${ev.title}`,
+          }))
+
+          const { error: insertErr } = await dbClient.from('boetes').insert(newFines)
+          if (!insertErr) {
+            eventFinesIssued += newFines.length
+            dispatchPushNotificationServer({
+              type: 'fine_received',
+              targetUserIds: playersToFine.map(p => p.id),
+              title: '💸 You Have Received a Fine',
+              body: `Boete ontvangen: Missed deadline voor ${ev.title} (€${missedType.default_amount})`,
+              url: '/team/boetes',
+            }).catch(console.error)
+          }
+        }
+      }
+    }
+
+    // 4. Process Polls with answer_by in the past (within last 30 days)
+    const { data: pastPolls } = await dbClient
+      .from('polls')
+      .select('id, question, answer_by, poll_votes(user_id)')
+      .lt('answer_by', now.toISOString())
+      .gte('answer_by', thirtyDaysAgo.toISOString())
+
+    if (pastPolls && pastPolls.length > 0) {
+      for (const po of pastPolls) {
+        const reasonStr = `Missed deadline for poll: ${po.question}`
+        const votedIds = (po.poll_votes || []).map((v: any) => v.user_id)
+
+        const { data: existingPollFines } = await dbClient
+          .from('boetes')
+          .select('user_id')
+          .eq('boete_type_id', missedType.id)
+          .eq('reason', reasonStr)
+
+        const alreadyFinedUserIds = new Set((existingPollFines || []).map((f: any) => f.user_id))
+
+        const playersToFine = players.filter(
+          p => !votedIds.includes(p.id) && !alreadyFinedUserIds.has(p.id)
+        )
+
+        if (playersToFine.length > 0) {
+          const newFines = playersToFine.map(p => ({
+            user_id: p.id,
+            boete_type_id: missedType.id,
+            amount: missedType.default_amount,
+            reason: reasonStr,
+          }))
+
+          const { error: insertErr } = await dbClient.from('boetes').insert(newFines)
+          if (!insertErr) {
+            pollFinesIssued += newFines.length
+            dispatchPushNotificationServer({
+              type: 'fine_received',
+              targetUserIds: playersToFine.map(p => p.id),
+              title: '💸 You Have Received a Fine',
+              body: `Boete ontvangen: Missed deadline voor poll "${po.question}" (€${missedType.default_amount})`,
+              url: '/team/boetes',
+            }).catch(console.error)
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      eventFinesIssued,
+      pollFinesIssued,
+    }
+  } catch (err) {
+    console.error('Error processing missed deadline fines:', err)
+    return { success: false, error: String(err) }
+  }
+}
+
