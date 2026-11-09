@@ -138,3 +138,137 @@ export async function deleteEntity(table: 'events' | 'polls', id: string) {
     return { success: false, error: err.message || 'An unexpected error occurred while deleting' }
   }
 }
+
+export async function deleteAllBoetes() {
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {}
+        },
+      },
+    }
+  )
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { success: false, error: 'Not authenticated' }
+  }
+
+  // Verify caller has captain role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'captain') {
+    return { success: false, error: 'Only captains can delete all fines.' }
+  }
+
+  let dbClient: any = supabase
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (serviceKey) {
+    try {
+      const { createClient } = await import('@supabase/supabase-js')
+      dbClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey)
+    } catch {}
+  }
+
+  try {
+    const { error } = await dbClient
+      .from('boetes')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000')
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    revalidatePath('/team/boetes')
+    revalidatePath('/')
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message || 'An unexpected error occurred while deleting all fines' }
+  }
+}
+
+export async function deleteBoete(id: string) {
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {}
+        },
+      },
+    }
+  )
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { success: false, error: 'Not authenticated' }
+  }
+
+  // Verify caller has captain role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'captain') {
+    return { success: false, error: 'Only captains can delete fines.' }
+  }
+
+  let dbClient: any = supabase
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (serviceKey) {
+    try {
+      const { createClient } = await import('@supabase/supabase-js')
+      dbClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey)
+    } catch {}
+  }
+
+  try {
+    const { error } = await dbClient
+      .from('boetes')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    revalidatePath('/team/boetes')
+    revalidatePath('/')
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message || 'An unexpected error occurred while deleting fine' }
+  }
+}

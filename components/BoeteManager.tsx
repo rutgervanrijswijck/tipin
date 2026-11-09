@@ -1,17 +1,30 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import { deleteAllBoetes, deleteBoete } from '@/app/actions/delete'
 
 export default function BoeteManager({ initialBoetes, boeteTypes, isCaptain }: any) {
-  const [showSettings, setShowSettings] = useState(false)
+  const [boetes, setBoetes] = useState(initialBoetes)
   const [types, setTypes] = useState(boeteTypes)
+  const [showSettings, setShowSettings] = useState(false)
   const [savingSettings, setSavingSettings] = useState(false)
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
+  const [deletingAll, setDeletingAll] = useState(false)
   const supabase = createClient()
   const router = useRouter()
 
-  const groupedBoetes = initialBoetes.reduce((acc: any, boete: any) => {
+  useEffect(() => {
+    setBoetes(initialBoetes)
+  }, [initialBoetes])
+
+  useEffect(() => {
+    setTypes(boeteTypes)
+  }, [boeteTypes])
+
+  const totalOutstanding = boetes.reduce((acc: number, b: any) => acc + (Number(b.amount) || 0), 0)
+
+  const groupedBoetes = boetes.reduce((acc: any, boete: any) => {
     const name = boete.profiles?.full_name || 'Unknown'
     if (!acc[name]) acc[name] = { total: 0, list: [] }
     acc[name].total += Number(boete.amount)
@@ -22,16 +35,51 @@ export default function BoeteManager({ initialBoetes, boeteTypes, isCaptain }: a
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this penalty?')) return
     setLoadingAction(id)
-    await supabase.from('boetes').delete().eq('id', id)
-    router.refresh()
-    setLoadingAction(null)
+    try {
+      const res = await deleteBoete(id)
+      if (!res.success) {
+        // Fallback directly to client supabase if server action fails
+        const { error } = await supabase.from('boetes').delete().eq('id', id)
+        if (error) {
+          alert(`Error deleting fine: ${error.message}`)
+          setLoadingAction(null)
+          return
+        }
+      }
+      setBoetes((prev: any[]) => prev.filter((b) => b.id !== id))
+      router.refresh()
+    } catch (err: any) {
+      alert(err?.message || 'Error deleting fine')
+    } finally {
+      setLoadingAction(null)
+    }
   }
 
-  const handleMarkPaid = async (id: string) => {
-    setLoadingAction(id)
-    await supabase.from('boetes').update({ status: 'paid' }).eq('id', id)
-    router.refresh()
-    setLoadingAction(null)
+  const handleDeleteAll = async () => {
+    if (boetes.length === 0) return
+    const fineWord = boetes.length === 1 ? 'fine' : 'fines'
+    if (!confirm(`Are you sure you want to delete all ${boetes.length} outstanding ${fineWord} at once? This action cannot be undone.`)) {
+      return
+    }
+    setDeletingAll(true)
+    try {
+      const res = await deleteAllBoetes()
+      if (!res.success) {
+        // Fallback directly to client supabase if server action fails
+        const { error } = await supabase.from('boetes').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+        if (error) {
+          alert(`Error deleting all fines: ${error.message}`)
+          setDeletingAll(false)
+          return
+        }
+      }
+      setBoetes([])
+      router.refresh()
+    } catch (err: any) {
+      alert(err?.message || 'Error deleting all fines')
+    } finally {
+      setDeletingAll(false)
+    }
   }
 
   const handleSaveSettings = async () => {
@@ -47,13 +95,47 @@ export default function BoeteManager({ initialBoetes, boeteTypes, isCaptain }: a
 
   return (
     <div className="max-w-md mx-auto p-4">
+      {/* Total sum of all outstanding fines */}
+      <div className="bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600 rounded-3xl p-5 text-white shadow-md mb-6 relative overflow-hidden">
+        <div className="relative z-10">
+          <p className="text-amber-100 text-xs font-bold uppercase tracking-wider">
+            Totale Boetepot (Total Outstanding)
+          </p>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="text-4xl font-black tracking-tight">
+              €{totalOutstanding.toFixed(2)}
+            </span>
+          </div>
+          <p className="text-xs text-amber-100/90 mt-2 font-medium">
+            {boetes.length} openstaande {boetes.length === 1 ? 'boete' : 'boetes'} • {Object.keys(groupedBoetes).length} {Object.keys(groupedBoetes).length === 1 ? 'speler' : 'spelers'}
+          </p>
+        </div>
+        <div className="absolute -right-3 -bottom-4 text-7xl opacity-20 pointer-events-none select-none">
+          💰
+        </div>
+      </div>
+
+      {/* Captain Controls */}
       {isCaptain && (
-        <button 
-          onClick={() => setShowSettings(!showSettings)}
-          className="w-full mb-6 bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-bold shadow-sm hover:bg-gray-50 flex justify-center gap-2"
-        >
-          ⚙️ Manage Penalty Amounts
-        </button>
+        <div className="mb-6 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <button 
+              type="button"
+              onClick={() => setShowSettings(!showSettings)}
+              className="w-full bg-white border border-gray-200 text-gray-700 py-2.5 px-3 rounded-2xl font-bold text-xs sm:text-sm shadow-sm hover:bg-gray-50 flex items-center justify-center gap-1.5 transition"
+            >
+              <span>⚙️</span> Manage Amounts
+            </button>
+            <button 
+              type="button"
+              disabled={deletingAll || boetes.length === 0}
+              onClick={handleDeleteAll}
+              className="w-full bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 active:bg-red-200 disabled:opacity-40 disabled:cursor-not-allowed py-2.5 px-3 rounded-2xl font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-1.5 transition"
+            >
+              <span>🗑️</span> {deletingAll ? 'Deleting...' : 'Delete All Boetes'}
+            </button>
+          </div>
+        </div>
       )}
 
       {showSettings && isCaptain && (
@@ -110,31 +192,25 @@ export default function BoeteManager({ initialBoetes, boeteTypes, isCaptain }: a
               </div>
               <div className="space-y-2">
                 {data.list.map((boete: any) => (
-                  <div key={boete.id} className="flex justify-between items-center bg-gray-50 p-2 rounded-xl">
+                  <div key={boete.id} className="flex justify-between items-center bg-gray-50 p-2.5 rounded-xl">
                     <div className="min-w-0 flex-1 pr-2">
                       <p className="text-xs font-bold text-gray-800 uppercase tracking-wide">{boete.boete_types?.name}</p>
-                      <p className="text-[10px] text-gray-500 truncate">{boete.reason}</p>
+                      {boete.reason && (
+                        <p className="text-[11px] text-gray-500 truncate">{boete.reason}</p>
+                      )}
                       <p className="text-[9px] text-gray-400">{new Date(boete.issued_at).toLocaleDateString()}</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-bold text-sm text-gray-900">€{boete.amount}</span>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <span className="font-bold text-sm text-gray-900">€{Number(boete.amount).toFixed(2)}</span>
                       {isCaptain && (
-                        <div className="flex flex-col gap-1">
-                          <button 
-                            disabled={loadingAction === boete.id}
-                            onClick={() => handleMarkPaid(boete.id)} 
-                            className="bg-green-100 text-green-700 text-[9px] font-bold px-2 py-0.5 rounded hover:bg-green-200 transition"
-                          >
-                            PAID
-                          </button>
-                          <button 
-                            disabled={loadingAction === boete.id}
-                            onClick={() => handleDelete(boete.id)} 
-                            className="bg-red-100 text-red-700 text-[9px] font-bold px-2 py-0.5 rounded hover:bg-red-200 transition"
-                          >
-                            DEL
-                          </button>
-                        </div>
+                        <button 
+                          type="button"
+                          disabled={loadingAction === boete.id}
+                          onClick={() => handleDelete(boete.id)} 
+                          className="bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-xs font-bold px-2.5 py-1 rounded-lg transition disabled:opacity-50"
+                        >
+                          {loadingAction === boete.id ? '...' : 'DEL'}
+                        </button>
                       )}
                     </div>
                   </div>

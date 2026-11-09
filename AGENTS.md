@@ -41,7 +41,7 @@ The workspace has the Supabase MCP server enabled and connected to the productio
 - **Captain Superpowers:**
   - Edit or delete any event or poll (regular players cannot edit).
   - Issue infraction fines to players directly from event detail screens.
-  - Modify fine pricing defaults in `boete_types`, mark fines as paid, or delete fines.
+  - Modify fine pricing defaults in `boete_types`, delete individual fines, or delete all fines at once.
   - Edit player profiles (including name and role reassignment).
 - **Player Limits:** Regular players can only change their own profile name, password, and avatar.
 
