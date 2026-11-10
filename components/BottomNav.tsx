@@ -35,7 +35,7 @@ export default function BottomNav({ notificationCount }: { notificationCount?: n
     fetchPolls()
   }, [notificationCount, pathname])
 
-  if (pathname === '/login') return null
+  if (pathname === '/login' || pathname === '/setup') return null
 
   let active = 'schedule'
   if (pathname.startsWith('/polls') || (pathname === '/' && searchParams.get('tab') === 'polls')) {

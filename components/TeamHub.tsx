@@ -7,9 +7,21 @@ import { updatePlayerProfileServer } from '@/app/team/roster/actions'
 export default function TeamHub({ profiles, currentUserRole, currentUserId }: { profiles: any[], currentUserRole: string, currentUserId: string }) {
   const [playerList, setPlayerList] = useState<any[]>(profiles)
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [copiedLink, setCopiedLink] = useState(false)
   const router = useRouter()
 
   const isCaptain = currentUserRole === 'captain'
+
+  const handleCopyInviteLink = async () => {
+    const setupUrl = `${window.location.origin}/setup`
+    try {
+      await navigator.clipboard.writeText(setupUrl)
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2500)
+    } catch {
+      prompt('Kopieer deze uitnodigingslink voor nieuwe spelers:', setupUrl)
+    }
+  }
 
   const handleUpdate = async (id: string, field: string, value: string) => {
     setLoadingId(id)
@@ -114,6 +126,23 @@ export default function TeamHub({ profiles, currentUserRole, currentUserId }: { 
 
   return (
     <div className="space-y-6 pb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Invite New Player Banner */}
+      <div className="bg-blue-50/80 border border-blue-100 rounded-2xl p-4 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-xs font-bold text-blue-900 uppercase tracking-wider">Nieuw teamlid?</h3>
+          <p className="text-xs text-blue-700 mt-0.5">
+            Deel de onboarding-link met uitleg & account setup.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleCopyInviteLink}
+          className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs transition active:scale-95"
+        >
+          {copiedLink ? '✅ Gekopieerd!' : '🔗 Kopieer Setup Link'}
+        </button>
+      </div>
+
       {/* 1. Active Roster */}
       <div className="flex justify-between items-end mb-2">
         <h2 className="text-xl font-bold text-gray-900">Active Roster</h2>
