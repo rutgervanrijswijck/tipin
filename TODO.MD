@@ -15,21 +15,20 @@
 [ X] Changing the appearance of the activities which have to be filled in ASAP.
 [ X] Adding the possibility to add a small profile picture.
 [ ] Improving the login screen
-[ ] Editing events & polls after creation (captains only)
-[ ] Being able to see profile pictures at poll and event details screen next to player names.
-[ ] Adding a button on the right side of List/Calendar toggle on the schedule screen called 'Borrels' that lets you filter on only events of type Social (Only on list view)
+[ X] Editing events & polls after creation (captains only)
+[ ] When Editing a poll, the poll option text is displayed above the Edit popup, which looks weird
+[ X] Being able to see profile pictures at poll and event details screen next to player names.
+[ X] Adding a button on the right side of List/Calendar toggle on the schedule screen called 'Borrels' that lets you filter on only events of type Social (Only on list view)
 [ ] Adding the option to display the color of team outfit that has to be worn at a competition game (either red or green).
-
 [ X] Boete pot screen improvements: display grand total sum of all outstanding fines across all players, captain button to delete all fines at once, and remove individual 'PAID' buttons leaving only 'DEL'.
+
 ## Appearance
 [ X] There are some legibility issues with the arrows on the calendar screens, we should make them darker.
 
 ## Ideas & research
 [ ] Are there any ways we can improve performance of the app?
-[ ] After users clicked "Add to homescreen" when visiting the app, can we send them notifications similar to regular apps?
+[ X] After users clicked "Add to homescreen" when visiting the app, can we send them notifications similar to regular apps?
 [ ] Can we sync the events to a google calendar?
 [ ] Are there any other usefull features we could implement?
 
 ## Suggested TODO's by Agent
-[ ] Implement PWA features & Push Notifications (manifest.json, Service Worker, VAPID).
-[ ] Implement Google Calendar Sync (e.g. /api/calendar/[userId].ics endpoint).
