@@ -21,6 +21,7 @@
 [ X] Adding a button on the right side of List/Calendar toggle on the schedule screen called 'Borrels' that lets you filter on only events of type Social (Only on list view)
 [ ] Adding the option to display the color of team outfit that has to be worn at a competition game (either red or green).
 [ X] Boete pot screen improvements: display grand total sum of all outstanding fines across all players, captain button to delete all fines at once, and remove individual 'PAID' buttons leaving only 'DEL'.
+[ ] Make sure that users can't change their answers on events and polls after the answer deadline.
 
 ## Appearance
 [ X] There are some legibility issues with the arrows on the calendar screens, we should make them darker.

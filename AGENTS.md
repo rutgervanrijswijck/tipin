@@ -15,6 +15,8 @@ This is a development project for a mobile based webapp called TipIn (Next.js 16
   - `app/api/cron/check-deadlines/`: Cron endpoint to send push reminders for upcoming deadlines and automatically process missed deadline fines
   - `app/api/cron/process-fines/`: Cron endpoint dedicated to automatically calculating and issuing missed deadline fines
   - `app/events/[id]/`: Event details, player attendance, captain actions (late/no-show/invalid reason)
+  - `app/login/`: User sign-in page (links new users to `/setup`)
+  - `app/setup/`: Multi-step new player onboarding flow (iOS/Android Add-to-Home-Screen instructions + account creation with profile photo and email verification)
   - `app/polls/[id]/`: Polls & voting
   - `app/team/`: Team hub (Roster, Player Profiles `player/[id]`, Stats, Adt-timer, Boetes)
 - `components/`: Shared UI components and layout elements
