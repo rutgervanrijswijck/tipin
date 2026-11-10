@@ -2,18 +2,18 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'TipIn',
+    name: 'TipIn — Heren van Flatsoen',
     short_name: 'TipIn',
-    description: 'De TipIn app door HVF!',
+    description: 'De team-app van Heren van Flatsoen!',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',
     theme_color: '#000000',
     icons: [
       {
-        src: '/HvF-Logo.jpg', // You need to put an icon.png in your 'public' folder
+        src: '/HvF-Logo.jpg',
         sizes: '597x597',
-        type: 'image/jpg',
+        type: 'image/jpeg',
       },
     ],
   }

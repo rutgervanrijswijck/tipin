@@ -11,12 +11,13 @@ This is a development project for a mobile based webapp called TipIn (Next.js 16
 
 ## Architecture & Directory Layout
 - `app/`: Next.js App Router pages and API routes
+  - `app/opengraph-image.tsx`, `app/icon.jpg`, `app/apple-icon.jpg`, `app/favicon.ico`: App-wide OpenGraph social link-preview banner (1200x630) and Heren van Flatsoen app icons
   - `app/api/ping/`: Lightweight keep-alive health ping endpoint (used by cron-job.org to prevent Vercel and Supabase cold starts)
   - `app/api/cron/check-deadlines/`: Cron endpoint to send push reminders for upcoming deadlines and automatically process missed deadline fines
   - `app/api/cron/process-fines/`: Cron endpoint dedicated to automatically calculating and issuing missed deadline fines
   - `app/events/[id]/`: Event details, player attendance, captain actions (late/no-show/invalid reason)
   - `app/login/`: User sign-in page (links new users to `/setup`)
-  - `app/setup/`: Multi-step new player onboarding flow (iOS/Android Add-to-Home-Screen instructions + account creation with profile photo and email verification)
+  - `app/setup/`: Multi-step new player onboarding flow (iOS/Android Add-to-Home-Screen instructions + account creation with profile photo and email verification), with dedicated metadata (`app/setup/layout.tsx`) and OpenGraph banner (`app/setup/opengraph-image.tsx`)
   - `app/polls/[id]/`: Polls & voting
   - `app/team/`: Team hub (Roster, Player Profiles `player/[id]`, Stats, Adt-timer, Boetes)
 - `components/`: Shared UI components and layout elements

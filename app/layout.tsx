@@ -13,8 +13,35 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TipIn by Rutger",
-  description: "HVF's TipIn app!",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://tipin.vercel.app"
+  ),
+  title: {
+    default: "TipIn — Heren van Flatsoen",
+    template: "%s | TipIn",
+  },
+  description:
+    "De team-app van Heren van Flatsoen voor trainingen, wedstrijden, borrels, polls en de boetepot.",
+  applicationName: "TipIn",
+  appleWebApp: {
+    capable: true,
+    title: "TipIn",
+    statusBarStyle: "default",
+  },
+  openGraph: {
+    type: "website",
+    locale: "nl_NL",
+    siteName: "TipIn — Heren van Flatsoen",
+    title: "TipIn — Heren van Flatsoen",
+    description:
+      "De team-app van Heren van Flatsoen voor trainingen, wedstrijden, borrels, polls en de boetepot.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TipIn — Heren van Flatsoen",
+    description:
+      "De team-app van Heren van Flatsoen voor trainingen, wedstrijden, borrels, polls en de boetepot.",
+  },
 };
 
 import { Suspense } from "react";
@@ -27,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="nl">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
